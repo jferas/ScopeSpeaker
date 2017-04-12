@@ -8,8 +8,11 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.webkit.WebView;
 
 public class ScopeSpeakerActivity extends AppCompatActivity {
+
+    WebView messageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,6 +20,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_scope_speaker);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        messageView = (WebView) findViewById(R.id.messageView);
+        setMessageView("Enter a Periscope user's name and ScopeSpeaker will attempt to find their current live broadcast, and audibly read the broadcast's chat messages to you.");
     }
 
     @Override
@@ -40,4 +45,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    // put the desired message up on the display
+    private void setMessageView(String s) {
+        String html_page_string;
+        html_page_string = "<html><body>"
+                + "<h2><p align=\"justify\">" + s + "</p> " + "</h2></body></html>";
+        messageView.loadData(html_page_string, "text/html; charset=utf-8", "UTF-8");
+    }
+
+
 }
