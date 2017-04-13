@@ -3,6 +3,7 @@ package com.ferasinfotech.scopespeaker;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.BoolRes;
+import android.support.annotation.StringDef;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -28,8 +29,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private final static String PERISCOPE_CHAT_ACCESS_URL = "https://api.periscope.tv/api/v2/accessChatPublic?chat_token=";
 
     private final static String VIDEO_TAG = "https://www.pscp.tv/w/";
+    private final static String JSON_TAG_CHAT_TOKEN = "chat_token";
+    private final static String JSON_TAG_ENDPOINT_URL = "endpoint";
 
-    private enum State {AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT};
+    private enum State {AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
+                        AWAITING_WEBSOCKET_CONNECTION};
+
     private State appState = null;
 
     // state variable indicating whether speech is in progress or not
@@ -52,10 +57,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private TextView userNameText = null;
 
     // name of user fetch from text widget
-    private String userName;
+    private String userName = null;
 
     // Broadcast ID fetched as first found from Periscope query for given user
     private String broadcastID = null;
+
+    // chat access token fetched from the URL that gives individual broadcast info
+    private String chatAccessToken = null;
+
+    // endpoint URL for websocket connection to establish for chat messages
+    private String endpointURL = null;
 
     // settings variables
     private Integer     secondsToWait = 30;
@@ -152,7 +163,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
             broadcastID = extractBroadcastID(response);
             if (broadcastID != null) {
                 appState = State.AWAITING_CHAT_ACCESS_TOKEN;
-                webQueryTask.execute(PERISCOPE_BROACAST_INFO_URL);
+                webQueryTask.execute(PERISCOPE_BROACAST_INFO_URL + broadcastID);
             }
             else {
                 queueMessageToSay(userName + " has no broadcasts");
@@ -161,15 +172,25 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
             try {
                 JSONObject infoJsonResponse = new JSONObject(response);
-                // add stuff here to pull out the chat access token, step the state forward
-                // to awaiting end point and do the chat access query
+                chatAccessToken = infoJsonResponse.getString(JSON_TAG_CHAT_TOKEN);
+                appState = State.AWAITING_CHAT_ENDPOINT;
+                webQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatAccessToken);
             }
             catch (JSONException e) {
                 schedulePeriscopeUserQuery();
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
-
+            try {
+                JSONObject infoJsonResponse = new JSONObject(response);
+                endpointURL = infoJsonResponse.getString(JSON_TAG_ENDPOINT_URL);
+                appState = State.AWAITING_WEBSOCKET_CONNECTION;
+                // this is where we start up the web socket and send some handshake info
+                // (broadcast ID and chat access token)
+            }
+            catch (JSONException e) {
+                queueMessageToSay("Error retreieving chat server endpoint URL");
+            }
         }
     };
 
