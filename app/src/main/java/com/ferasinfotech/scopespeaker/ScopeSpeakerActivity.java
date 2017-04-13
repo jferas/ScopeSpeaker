@@ -13,12 +13,24 @@ import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class ScopeSpeakerActivity extends AppCompatActivity {
 
+    private final static String PERISCOPE_URL = "https://www.periscope.tv/";
+    private final static String PERISCOPE_BROACAST_INFO_URL = "https://api.periscope.tv/api/v2/accessVideoPublic?broadcast_id=";
+    private final static String PERISCOPE_CHAT_ACCESS_URL = "https://api.periscope.tv/api/v2/accessChatPublic?chat_token=";
+
     private final static String VIDEO_TAG = "https://www.pscp.tv/w/";
+
+    private enum State {AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT};
+    private State appState = null;
+
+    // state variable indicating whether speech is in progress or not
+    private Boolean      speaking = false;
 
     private WebView      messageView = null;
     private WebQueryTask webQueryTask = null;
@@ -28,11 +40,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private final List<String> messages = new ArrayList<>();
     private String       queuedMessageBeingSaid = null;
 
-    // state variable indicating whether speech is in progress or not
-    private Boolean      speaking = false;
+    // username text widget
+    private TextView userNameText = null;
 
-    TextView userNameText = null;
+    // name of user fetch from text widget
+    private String userName;
 
+    // Broadcast ID fetched as first found from Periscope query for given user
+    private String broadcastID = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,20 +111,29 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
 
     // start the process of getting the chat messages for the specified user's live broadcast
     public void processChatMessages(View v) {
-        String username = (String) userNameText.getText().toString();
-        queueMessageToSay("Scope Speaker will look for a Periscope live stream by " + username);
-        webQueryTask.execute("https://www.periscope.tv/" + username);
+        userName = (String) userNameText.getText().toString();
+        queueMessageToSay("Scope Speaker will look for a Periscope live stream by " + userName);
+        appState = State.AWAITING_BROADCAST_ID;
+        webQueryTask.execute(PERISCOPE_URL + userName);
     }
 
     // process the successful result of a webQueryTask request
     public void webQueryResult(String response) {
-        queueMessageToSay("Got a good response from periscope that is " + response.length() + " bytes long");
-        int start_video_tag = response.indexOf(VIDEO_TAG);
-        if (start_video_tag > 0) {
-            int start_of_id = start_video_tag + VIDEO_TAG.length();
-            int end_of_id = response.indexOf('&', start_video_tag);
-            String id_string = response.substring(start_of_id, end_of_id);
-            queueMessageToSay("Got a video tag of " + id_string);
+        if (appState == State.AWAITING_BROADCAST_ID) {
+            broadcastID = extractBroadcastID(response);
+            if (broadcastID != null) {
+                appState = State.AWAITING_CHAT_ACCESS_TOKEN;
+                webQueryTask.execute(PERISCOPE_BROACAST_INFO_URL);
+            }
+            else {
+                queueMessageToSay(userName + " has no broadcasts");
+            }
+        }
+        else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
+            JSONObject infoJsonResponse = new JSONObject(response);
+        }
+        else if (appState == State.AWAITING_CHAT_ENDPOINT) {
+
         }
     };
 
@@ -117,6 +141,22 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     public void webQueryError(String error) {
         queueMessageToSay("Got a bad response from periscope");
     };
+
+    private String extractBroadcastID(String periscopeResponse) {
+        int startOfVideoTag = periscopeResponse.indexOf(VIDEO_TAG);
+        if (startOfVideoTag > 0) {
+            int startOfId = startOfVideoTag + VIDEO_TAG.length();
+            int endOfId = periscopeResponse.indexOf('&', startOfVideoTag);
+            String idString = periscopeResponse.substring(startOfId, endOfId);
+            queueMessageToSay("Got a video tag of " + idString);
+            return(idString);
+        }
+        else
+        {
+            return(null);
+        }
+    }
+
 
     // queues a message that is of higher priority than tweets, will be dequeued in sayNext method
     private void queueMessageToSay(String msg) {
