@@ -11,7 +11,7 @@
 
     <LinearLayout android:background="@drawable/border"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="200dp"
         android:padding="2dp">
 
         <WebView android:id="@+id/messageView"
@@ -38,7 +38,8 @@
             android:id="@+id/start"
             android:layout_width="180dp"
             android:layout_height="wrap_content"
-            android:text="Listen"
+            android:onClick="processChatMessages"
+            android:text="Say Messages"
             android:layout_alignParentRight="true" />
 
     </RelativeLayout>

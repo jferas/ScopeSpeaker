@@ -23,13 +23,11 @@ import java.net.URL;
 public class WebQueryTask extends AsyncTask<String, Void, String> {
 
     private ScopeSpeakerActivity scopeSpeakerActivity = null;
-    private Context the_context = null;
     private Bundle params = null;
 
-    public void init(Context context, ScopeSpeakerActivity sta) {
+    public void init(ScopeSpeakerActivity ssa) {
         try {
-            scopeSpeakerActivity = sta;
-            the_context = context;
+            scopeSpeakerActivity = ssa;
         } catch (Exception e) {
             e.printStackTrace();
         }
