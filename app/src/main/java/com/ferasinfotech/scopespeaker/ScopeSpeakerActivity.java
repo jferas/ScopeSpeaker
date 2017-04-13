@@ -1,11 +1,13 @@
 package com.ferasinfotech.scopespeaker;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.BoolRes;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,6 +15,7 @@ import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -36,6 +39,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private WebQueryTask webQueryTask = null;
     private TTSManager   ttsManager = null;
 
+    // timer variables
+    private Handler     handler = null;
+    private Runnable    the_runnable = null;
+
+
     // storage for queue of messages that are spoken on a FIFO basis
     private final List<String> messages = new ArrayList<>();
     private String       queuedMessageBeingSaid = null;
@@ -48,6 +56,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
 
     // Broadcast ID fetched as first found from Periscope query for given user
     private String broadcastID = null;
+
+    // settings variables
+    private Integer     secondsToWait = 30;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,10 +122,28 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
 
     // start the process of getting the chat messages for the specified user's live broadcast
     public void processChatMessages(View v) {
+        userQuery();
+    }
+
+    private void userQuery() {
         userName = (String) userNameText.getText().toString();
-        queueMessageToSay("Scope Speaker will look for a Periscope live stream by " + userName);
+        queueMessageToSay("Looking for a Periscope live stream by " + userName);
         appState = State.AWAITING_BROADCAST_ID;
         webQueryTask.execute(PERISCOPE_URL + userName);
+    }
+
+    private void schedulePeriscopeUserQuery() {
+        queueMessageToSay("Will check again in " + secondsToWait + " seconds");
+        handler = new Handler();
+        the_runnable = new Runnable() {
+            @Override
+            public void run() {
+                //Query Periscope for user again after 'secondsToWait' seconds (converted to ms)
+                handler = null;
+                userQuery();
+            }
+        };
+        handler.postDelayed(the_runnable, secondsToWait * 1000);
     }
 
     // process the successful result of a webQueryTask request
@@ -130,7 +159,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
-            JSONObject infoJsonResponse = new JSONObject(response);
+            try {
+                JSONObject infoJsonResponse = new JSONObject(response);
+                // add stuff here to pull out the chat access token, step the state forward
+                // to awaiting end point and do the chat access query
+            }
+            catch (JSONException e) {
+                schedulePeriscopeUserQuery();
+            }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
 
