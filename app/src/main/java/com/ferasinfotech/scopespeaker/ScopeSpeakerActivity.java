@@ -231,8 +231,25 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
                 else {
                     endpointURL = endpointURL.replace("http:", "ws:");
                 }
-                String joinJsonMessage = "{\"payload\":\"{\"body\":\"{\\\"room\":\\\"" + broadcastID + "\\\"}\",\"kind\":1}\",\"kind\":2}";
-                String authJsonMessage = "{\"payload\":\"{\"access_token\":\"" + chatAccessToken + "\"}\",\"kind\":3}";
+                JSONObject jsonJoin = new JSONObject();
+                JSONObject jsonBody = new JSONObject();
+                JSONObject jsonRoom = new JSONObject();
+                jsonRoom.put("room", broadcastID);
+                jsonBody.put("body", jsonRoom);
+                jsonBody.put("kind", 1);
+                jsonJoin.put("payload", jsonBody);
+                jsonJoin.put("kind", 2);
+                String joinJsonMessage = jsonJoin.toString();
+
+                JSONObject jsonAuth = new JSONObject();
+                JSONObject jsonAccessToken = new JSONObject();
+                jsonAccessToken.put("access_token", chatAccessToken);
+                jsonAuth.put("payload", jsonAccessToken);
+                jsonAuth.put("kind",3);
+                String authJsonMessage = jsonAuth.toString();
+
+                //String joinJsonMessage = "{\"payload\":\"{\"body\":\"{\\\"room\":\\\"" + broadcastID + "\\\"}\",\"kind\":1}\",\"kind\":2}";
+                //String authJsonMessage = "{\"payload\":\"{\"access_token\":\"" + chatAccessToken + "\"}\",\"kind\":3}";
                 establishWebSocket(endpointURL, authJsonMessage, joinJsonMessage);
                 appState = State.ESTABLISHED_WEBSOCKET_CONNECTION;
                 queueMessageToSay("Ready to receive chat messages");
