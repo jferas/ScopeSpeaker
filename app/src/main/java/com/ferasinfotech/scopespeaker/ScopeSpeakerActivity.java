@@ -29,6 +29,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private final static String PERISCOPE_CHAT_ACCESS_URL = "https://api.periscope.tv/api/v2/accessChatPublic?chat_token=";
 
     private final static String VIDEO_TAG = "https://www.pscp.tv/w/";
+    private final static String JSON_TAG_BROADCAST = "broadcast";
+    private final static String JSON_TAG_VIDEO_STATE = "state";
     private final static String JSON_TAG_CHAT_TOKEN = "chat_token";
     private final static String JSON_TAG_ENDPOINT_URL = "endpoint";
 
@@ -41,8 +43,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private Boolean      speaking = false;
 
     private WebView      messageView = null;
-    private WebQueryTask webQueryTask = null;
     private TTSManager   ttsManager = null;
+
+    private WebQueryTask userQueryTask = null;
+    private WebQueryTask infoQueryTask = null;
+    private WebQueryTask chatQueryTask = null;
 
     // timer variables
     private Handler     handler = null;
@@ -75,8 +80,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        webQueryTask = new WebQueryTask();
-        webQueryTask.init(this);
         createTextToSpeechManager();
 
         setContentView(R.layout.activity_scope_speaker);
@@ -93,6 +96,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         destroyTextToSpeechManager();
+        if (handler != null) {
+            handler.removeCallbacks(the_runnable);
+            handler = null;
+        }
     }
 
     // create the text to speech manager
@@ -133,6 +140,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
 
     // start the process of getting the chat messages for the specified user's live broadcast
     public void processChatMessages(View v) {
+        if (handler != null) {
+            handler.removeCallbacks(the_runnable);
+            handler = null;
+        }
         userQuery();
     }
 
@@ -140,11 +151,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
         userName = (String) userNameText.getText().toString();
         queueMessageToSay("Looking for a Periscope live stream by " + userName);
         appState = State.AWAITING_BROADCAST_ID;
-        webQueryTask.execute(PERISCOPE_URL + userName);
+        userQueryTask = new WebQueryTask();
+        userQueryTask.init(this);
+        userQueryTask.execute(PERISCOPE_URL + userName);
     }
 
     private void schedulePeriscopeUserQuery() {
-        queueMessageToSay("Will check again in " + secondsToWait + " seconds");
+        queueMessageToSay("No live streams found.  Will check again in " + secondsToWait + " seconds");
         handler = new Handler();
         the_runnable = new Runnable() {
             @Override
@@ -160,33 +173,51 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     // process the successful result of a webQueryTask request
     public void webQueryResult(String response) {
         if (appState == State.AWAITING_BROADCAST_ID) {
+            userQueryTask.cancel(true);
+            userQueryTask = null;
             broadcastID = extractBroadcastID(response);
             if (broadcastID != null) {
                 appState = State.AWAITING_CHAT_ACCESS_TOKEN;
-                webQueryTask.execute(PERISCOPE_BROACAST_INFO_URL + broadcastID);
+                infoQueryTask = new WebQueryTask();
+                infoQueryTask.init(this);
+                infoQueryTask.execute(PERISCOPE_BROACAST_INFO_URL + broadcastID);
             }
             else {
                 queueMessageToSay(userName + " has no broadcasts");
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
+            infoQueryTask.cancel(true);
+            infoQueryTask = null;
             try {
                 JSONObject infoJsonResponse = new JSONObject(response);
-                chatAccessToken = infoJsonResponse.getString(JSON_TAG_CHAT_TOKEN);
-                appState = State.AWAITING_CHAT_ENDPOINT;
-                webQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatAccessToken);
+                JSONObject bcastJsonObject = infoJsonResponse.getJSONObject(JSON_TAG_BROADCAST);
+                String video_state = bcastJsonObject.getString(JSON_TAG_VIDEO_STATE);
+                if (video_state.equals("RUNNING")) {
+                    chatAccessToken = infoJsonResponse.getString(JSON_TAG_CHAT_TOKEN);
+                    appState = State.AWAITING_CHAT_ENDPOINT;
+                    chatQueryTask = new WebQueryTask();
+                    chatQueryTask.init(this);
+                    chatQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatAccessToken);
+                }
+                else {
+                    schedulePeriscopeUserQuery();
+                }
             }
             catch (JSONException e) {
                 schedulePeriscopeUserQuery();
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
+            chatQueryTask.cancel(true);
+            chatQueryTask = null;
             try {
                 JSONObject infoJsonResponse = new JSONObject(response);
                 endpointURL = infoJsonResponse.getString(JSON_TAG_ENDPOINT_URL);
                 appState = State.AWAITING_WEBSOCKET_CONNECTION;
                 // this is where we start up the web socket and send some handshake info
                 // (broadcast ID and chat access token)
+                queueMessageToSay("we think we have a chat endpoint:" + endpointURL);
             }
             catch (JSONException e) {
                 queueMessageToSay("Error retreieving chat server endpoint URL");
@@ -205,7 +236,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
             int startOfId = startOfVideoTag + VIDEO_TAG.length();
             int endOfId = periscopeResponse.indexOf('&', startOfVideoTag);
             String idString = periscopeResponse.substring(startOfId, endOfId);
-            queueMessageToSay("Got a video tag of " + idString);
             return(idString);
         }
         else

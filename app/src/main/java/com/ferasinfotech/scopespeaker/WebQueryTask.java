@@ -35,13 +35,15 @@ public class WebQueryTask extends AsyncTask<String, Void, String> {
 
     @Override
     protected String doInBackground(String... urls) {
-        try {
-            return loadFromNetwork(urls[0]);
+        if (!isCancelled()) {
+            try {
+                return loadFromNetwork(urls[0]);
+            } catch (IOException e) {
+                scopeSpeakerActivity.webQueryError("Connection error");
+                return ("Connection error");
+            }
         }
-        catch (IOException e) {
-            scopeSpeakerActivity.webQueryError("Connection error");
-            return("Connection error");
-        }
+        return("");
     }
 
     @Override
