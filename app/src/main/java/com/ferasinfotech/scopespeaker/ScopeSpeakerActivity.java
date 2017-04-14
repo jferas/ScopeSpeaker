@@ -22,6 +22,12 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+
 public class ScopeSpeakerActivity extends AppCompatActivity {
 
     private final static String PERISCOPE_URL = "https://www.periscope.tv/";
@@ -35,7 +41,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private final static String JSON_TAG_ENDPOINT_URL = "endpoint";
 
     private enum State {AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
-                        AWAITING_WEBSOCKET_CONNECTION};
+                        ESTABLISHED_WEBSOCKET_CONNECTION};
 
     private State appState = null;
 
@@ -72,6 +78,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
 
     // endpoint URL for websocket connection to establish for chat messages
     private String endpointURL = null;
+
+    // web socket client for communicating with the Periscope chat server
+    private WebSocketClient mWebSocketClient;
+
 
     // settings variables
     private Integer     secondsToWait = 30;
@@ -214,14 +224,25 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
             try {
                 JSONObject infoJsonResponse = new JSONObject(response);
                 endpointURL = infoJsonResponse.getString(JSON_TAG_ENDPOINT_URL);
-                appState = State.AWAITING_WEBSOCKET_CONNECTION;
-                // this is where we start up the web socket and send some handshake info
-                // (broadcast ID and chat access token)
-                queueMessageToSay("we think we have a chat endpoint:" + endpointURL);
+                endpointURL += "/chatapi/v1/chatnow";
+                if (endpointURL.substring(0, 6).equals("https:")) {
+                    endpointURL = endpointURL.replace("https:", "wss:");
+                }
+                else {
+                    endpointURL = endpointURL.replace("http:", "ws:");
+                }
+                String joinJsonMessage = "{\"payload\":\"{\"body\":\"{\\\"room\":\\\"" + broadcastID + "\\\"}\",\"kind\":1}\",\"kind\":2}";
+                String authJsonMessage = "{\"payload\":\"{\"access_token\":\"" + chatAccessToken + "\"}\",\"kind\":3}";
+                establishWebSocket(endpointURL, authJsonMessage, joinJsonMessage);
+                appState = State.ESTABLISHED_WEBSOCKET_CONNECTION;
+                queueMessageToSay("Ready to receive chat messages");
             }
             catch (JSONException e) {
                 queueMessageToSay("Error retreieving chat server endpoint URL");
             }
+        }
+        else if (appState == State.ESTABLISHED_WEBSOCKET_CONNECTION) {
+
         }
     };
 
@@ -293,5 +314,47 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
                 + "<h2><p align=\"justify\">" + s + "</p> " + "</h2></body></html>";
         messageView.loadData(html_page_string, "text/html; charset=utf-8", "UTF-8");
     }
+
+    private void establishWebSocket(String chatServerURL, final String joinMessage, final String authMessage) {
+        URI uri;
+        try {
+            uri = new URI(chatServerURL);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        mWebSocketClient = new WebSocketClient(uri) {
+            @Override
+            public void onOpen(ServerHandshake serverHandshake) {
+                Log.i("Websocket", "Opened");
+                mWebSocketClient.send(authMessage);
+                mWebSocketClient.send(joinMessage);
+            }
+
+            @Override
+            public void onMessage(String s) {
+                final String message = s;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        webQueryResult(message);
+                    }
+                });
+            }
+
+            @Override
+            public void onClose(int i, String s, boolean b) {
+                Log.i("Websocket", "Closed " + s);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.i("Websocket", "Error " + e.getMessage());
+            }
+        };
+        mWebSocketClient.connect();
+    }
+
 }
 
