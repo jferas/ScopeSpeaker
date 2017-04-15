@@ -16,6 +16,7 @@ import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.java_websocket.drafts.Draft_75;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,6 +25,9 @@ import java.util.List;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.java_websocket.drafts.Draft_17;
+
+
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -37,7 +41,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private final static String VIDEO_TAG = "https://www.pscp.tv/w/";
     private final static String JSON_TAG_BROADCAST = "broadcast";
     private final static String JSON_TAG_VIDEO_STATE = "state";
-    private final static String JSON_TAG_CHAT_TOKEN = "chat_token";
+    private final static String JSON_TAG_URL_CHAT_TOKEN = "chat_token";
+    private final static String JSON_TAG_CHAT_ACCESS_TOKEN = "access_token";
     private final static String JSON_TAG_ENDPOINT_URL = "endpoint";
 
     private enum State {AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
@@ -74,6 +79,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private String broadcastID = null;
 
     // chat access token fetched from the URL that gives individual broadcast info
+    private String chatURLAccessToken = null;
+
+    // chat access token fetched from JSON response and fed to websocket on handshake
     private String chatAccessToken = null;
 
     // endpoint URL for websocket connection to establish for chat messages
@@ -204,11 +212,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
                 JSONObject bcastJsonObject = infoJsonResponse.getJSONObject(JSON_TAG_BROADCAST);
                 String video_state = bcastJsonObject.getString(JSON_TAG_VIDEO_STATE);
                 if (video_state.equals("RUNNING")) {
-                    chatAccessToken = infoJsonResponse.getString(JSON_TAG_CHAT_TOKEN);
+                    chatURLAccessToken = infoJsonResponse.getString(JSON_TAG_URL_CHAT_TOKEN);
                     appState = State.AWAITING_CHAT_ENDPOINT;
                     chatQueryTask = new WebQueryTask();
                     chatQueryTask.init(this);
-                    chatQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatAccessToken);
+                    chatQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatURLAccessToken);
                 }
                 else {
                     schedulePeriscopeUserQuery();
@@ -223,6 +231,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
             chatQueryTask = null;
             try {
                 JSONObject infoJsonResponse = new JSONObject(response);
+                chatAccessToken = infoJsonResponse.getString(JSON_TAG_CHAT_ACCESS_TOKEN);
                 endpointURL = infoJsonResponse.getString(JSON_TAG_ENDPOINT_URL);
                 endpointURL += "/chatapi/v1/chatnow";
                 if (endpointURL.substring(0, 6).equals("https:")) {
@@ -243,14 +252,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
 
                 JSONObject jsonAuth = new JSONObject();
                 JSONObject jsonAccessToken = new JSONObject();
-                jsonAccessToken.put("access_token", chatAccessToken);
+                jsonAccessToken.put(JSON_TAG_CHAT_ACCESS_TOKEN, chatAccessToken);
                 jsonAuth.put("payload", jsonAccessToken);
                 jsonAuth.put("kind",3);
                 String authJsonMessage = jsonAuth.toString();
 
                 //String joinJsonMessage = "{\"payload\":\"{\"body\":\"{\\\"room\":\\\"" + broadcastID + "\\\"}\",\"kind\":1}\",\"kind\":2}";
                 //String authJsonMessage = "{\"payload\":\"{\"access_token\":\"" + chatAccessToken + "\"}\",\"kind\":3}";
-                establishWebSocket(endpointURL, authJsonMessage, joinJsonMessage);
+                establishWebSocket(endpointURL, joinJsonMessage, authJsonMessage);
                 appState = State.ESTABLISHED_WEBSOCKET_CONNECTION;
                 queueMessageToSay("Ready to receive chat messages");
             }
@@ -332,6 +341,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
         messageView.loadData(html_page_string, "text/html; charset=utf-8", "UTF-8");
     }
 
+
     private void establishWebSocket(String chatServerURL, final String joinMessage, final String authMessage) {
         URI uri;
         try {
@@ -341,7 +351,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
             return;
         }
 
-        mWebSocketClient = new WebSocketClient(uri) {
+        mWebSocketClient = new WebSocketClient(uri, new Draft_17()) {
             @Override
             public void onOpen(ServerHandshake serverHandshake) {
                 Log.i("Websocket", "Opened");
