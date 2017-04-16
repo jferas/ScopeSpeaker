@@ -16,23 +16,29 @@ import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import org.java_websocket.drafts.Draft_75;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
-import org.java_websocket.drafts.Draft_17;
+//jjf
+//import org.java_websocket.drafts.Draft_75;
+//import org.java_websocket.client.WebSocketClient;
+//import org.java_websocket.handshake.ServerHandshake;
+//import org.java_websocket.drafts.Draft_17;
 
+import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
+import de.tavendo.autobahn.WebSocketConnection;
+import de.tavendo.autobahn.WebSocketException;
 
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class ScopeSpeakerActivity extends AppCompatActivity {
+public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocketConnectionObserver {
+
+    private static final String TAG = ScopeSpeakerActivity.class.getName();
 
     private final static String PERISCOPE_URL = "https://www.periscope.tv/";
     private final static String PERISCOPE_BROACAST_INFO_URL = "https://api.periscope.tv/api/v2/accessVideoPublic?broadcast_id=";
@@ -45,8 +51,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     private final static String JSON_TAG_CHAT_ACCESS_TOKEN = "access_token";
     private final static String JSON_TAG_ENDPOINT_URL = "endpoint";
 
-    private enum State {AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
-                        ESTABLISHED_WEBSOCKET_CONNECTION};
+    private enum State {AWAITING_USER_REQUEST, AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
+                        AWAITING_WEBSOCKET_CONNECTION, AWAITING_CHAT_MESSAGES};
 
     private State appState = null;
 
@@ -87,8 +93,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     // endpoint URL for websocket connection to establish for chat messages
     private String endpointURL = null;
 
+    // JSON message strings for initial handshake with chat server over websocket
+    private String joinJsonMessage = null;
+    private String authJsonMessage = null;
+
     // web socket client for communicating with the Periscope chat server
-    private WebSocketClient mWebSocketClient;
+    // commented out by jjf private WebSocketClient mWebSocketClient;
+    private WebSocketConnection mConnection;
 
 
     // settings variables
@@ -240,43 +251,71 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
                 else {
                     endpointURL = endpointURL.replace("http:", "ws:");
                 }
-                JSONObject jsonJoin = new JSONObject();
-                JSONObject jsonBody = new JSONObject();
-                JSONObject jsonRoom = new JSONObject();
-                jsonRoom.put("room", broadcastID);
-                jsonBody.put("body", jsonRoom);
-                jsonBody.put("kind", 1);
-                jsonJoin.put("payload", jsonBody);
-                jsonJoin.put("kind", 2);
-                String joinJsonMessage = jsonJoin.toString();
-
-                JSONObject jsonAuth = new JSONObject();
-                JSONObject jsonAccessToken = new JSONObject();
-                jsonAccessToken.put(JSON_TAG_CHAT_ACCESS_TOKEN, chatAccessToken);
-                jsonAuth.put("payload", jsonAccessToken);
-                jsonAuth.put("kind",3);
-                String authJsonMessage = jsonAuth.toString();
-
-                //String joinJsonMessage = "{\"payload\":\"{\"body\":\"{\\\"room\":\\\"" + broadcastID + "\\\"}\",\"kind\":1}\",\"kind\":2}";
-                //String authJsonMessage = "{\"payload\":\"{\"access_token\":\"" + chatAccessToken + "\"}\",\"kind\":3}";
-                establishWebSocket(endpointURL, joinJsonMessage, authJsonMessage);
-                appState = State.ESTABLISHED_WEBSOCKET_CONNECTION;
-                queueMessageToSay("Ready to receive chat messages");
+                joinJsonMessage = "{\"kind\":2,\"payload\":\"{\\\"kind\\\":1,\\\"body\\\":\\\"{\\\\\\\"room\\\\\\\":\\\\\\\"replace_this\\\\\\\"}\\\"}\"}";
+                authJsonMessage = "{\"kind\":3,\"payload\":\"{\\\"access_token\\\":\\\"replace_this\\\"}\"}";
+                joinJsonMessage = joinJsonMessage.replace("replace_this", broadcastID);
+                authJsonMessage = authJsonMessage.replace("replace_this", chatAccessToken);
+                establishWebSocket(endpointURL);
+                appState = State.AWAITING_WEBSOCKET_CONNECTION;
             }
             catch (JSONException e) {
                 queueMessageToSay("Error retreieving chat server endpoint URL");
+                appState = State.AWAITING_USER_REQUEST;
             }
         }
-        else if (appState == State.ESTABLISHED_WEBSOCKET_CONNECTION) {
+        else if (appState == State.AWAITING_WEBSOCKET_CONNECTION) {
+            if (response.equals("connected")) {
+                queueMessageToSay("Listening for chat messages");
+                appState = State.AWAITING_CHAT_MESSAGES;
+            }
+            else {
+                queueMessageToSay("Error connecting to periscope chat message server");
+                appState = State.AWAITING_USER_REQUEST;
+            }
 
+        }
+        else if (appState == State.AWAITING_CHAT_MESSAGES) {
+            try {
+                JSONObject chatMessage = new JSONObject(response);
+                int kind = chatMessage.getInt("kind");
+                if (kind == 1) {
+                    response = response.replaceAll("\\\\", "");
+                    extractAndSayMessage(response);
+                }
+            }
+            catch (JSONException e) {
+                Log.i(TAG, "chat parse exception:" + e.getMessage());
+                Log.i(TAG, "we broke");
+            }
         }
     };
 
     // process the error result of a webQueryTask request
     public void webQueryError(String error) {
-        queueMessageToSay("Got a bad response from periscope");
+        appState = State.AWAITING_USER_REQUEST;
+        queueMessageToSay("Got a bad response from periscope: " + error);
     };
 
+    private void extractAndSayMessage(String msg) {
+        int firstbody = msg.indexOf("body");
+        if (firstbody > 0) {
+            int secondbody = msg.indexOf("body", firstbody + 6);
+            if (secondbody > 0) {
+                Log.d(TAG, "Chat message:" + msg);
+                int sentence_start = secondbody + 7;
+                int sentence_end = msg.indexOf('"', sentence_start + 1);
+                String whatTheySaid = msg.substring(sentence_start, sentence_end);
+                int displayname_start = msg.indexOf("displayName", sentence_end);
+                if (displayname_start > 0) {
+                    int name_start = displayname_start + 14;
+                    int name_end = msg.indexOf('"', name_start + 1);
+                    String whoSaidIt = msg.substring(name_start, name_end);
+                    queueMessageToSay(whoSaidIt + " said: " + whatTheySaid);
+                }
+
+            }
+        }
+    }
     private String extractBroadcastID(String periscopeResponse) {
         int startOfVideoTag = periscopeResponse.indexOf(VIDEO_TAG);
         if (startOfVideoTag > 0) {
@@ -342,45 +381,59 @@ public class ScopeSpeakerActivity extends AppCompatActivity {
     }
 
 
-    private void establishWebSocket(String chatServerURL, final String joinMessage, final String authMessage) {
+    private void establishWebSocket(String chatServerURL) {
+        this.mConnection = new WebSocketConnection();
+
         URI uri;
         try {
             uri = new URI(chatServerURL);
+            mConnection.connect(uri, this);
         } catch (URISyntaxException e) {
-            e.printStackTrace();
-            return;
+            String message = e.getLocalizedMessage();
+            Log.e(TAG, message);
+            webQueryError(message);
+        } catch (WebSocketException e) {
+            String message = e.getLocalizedMessage();
+            Log.e(TAG, message);
+            webQueryError(message);
         }
+    }
 
-        mWebSocketClient = new WebSocketClient(uri, new Draft_17()) {
-            @Override
-            public void onOpen(ServerHandshake serverHandshake) {
-                Log.i("Websocket", "Opened");
-                mWebSocketClient.send(authMessage);
-                mWebSocketClient.send(joinMessage);
-            }
+    public void disconnect() {
+        mConnection.disconnect();
+    }
 
-            @Override
-            public void onMessage(String s) {
-                final String message = s;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        webQueryResult(message);
-                    }
-                });
-            }
+    //
+    // WebSocket Handler callbacks
+    @Override
+    public void onOpen() {
+        String message = "Connection opened to: " + endpointURL;
+        Log.d(TAG, message);
+        mConnection.sendTextMessage(authJsonMessage);
+        mConnection.sendTextMessage(joinJsonMessage);
+        webQueryResult("connected");
+    }
 
-            @Override
-            public void onClose(int i, String s, boolean b) {
-                Log.i("Websocket", "Closed " + s);
-            }
+    @Override
+    public void onClose(WebSocketCloseNotification code, String reason) {
+        this.mConnection = null;
 
-            @Override
-            public void onError(Exception e) {
-                Log.i("Websocket", "Error " + e.getMessage());
-            }
-        };
-        mWebSocketClient.connect();
+        String message = "Websocket Closed: " + code.name() + ", " + reason;
+        Log.d(TAG, message);
+        webQueryError(message);
+    }
+
+    @Override
+    public void onTextMessage(String payload) {
+        webQueryResult(payload);
+    }
+
+    @Override
+    public void onRawTextMessage(byte[] payload) {
+    }
+
+    @Override
+    public void onBinaryMessage(byte[] payload) {
     }
 
 }
