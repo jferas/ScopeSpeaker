@@ -117,7 +117,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("Enter a Periscope user's name and ScopeSpeaker will attempt to find their current live broadcast, and audibly read the broadcast's chat messages to you.");
+        setMessageView("ScopeSpeaker v0.1<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
     }
 
     // app shutdown - destroy allocated objects
@@ -187,6 +187,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     private void schedulePeriscopeUserQuery(int seconds) {
         queueMessageToSay("Will check for more live streams in " + seconds + " seconds");
+        if (handler != null) {
+            handler.removeCallbacks(the_runnable);
+            handler = null;
+        }
         handler = new Handler();
         the_runnable = new Runnable() {
             @Override
@@ -218,8 +222,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
-            infoQueryTask.cancel(true);
-            infoQueryTask = null;
+            if (infoQueryTask != null) {
+                infoQueryTask.cancel(true);
+                infoQueryTask = null;
+            }
             try {
                 JSONObject infoJsonResponse = new JSONObject(response);
                 JSONObject bcastJsonObject = infoJsonResponse.getJSONObject(JSON_TAG_BROADCAST);
@@ -232,16 +238,20 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     chatQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatURLAccessToken);
                 }
                 else {
+                    queueMessageToSay(userName + " is not live streaming at the moment");
                     schedulePeriscopeUserQuery(secondsToWait);
                 }
             }
             catch (JSONException e) {
+                queueMessageToSay(userName + " is not live streaming at the moment");
                 schedulePeriscopeUserQuery(secondsToWait);
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
-            chatQueryTask.cancel(true);
-            chatQueryTask = null;
+            if (chatQueryTask != null) {
+                chatQueryTask.cancel(true);
+                chatQueryTask = null;
+            }
             try {
                 JSONObject infoJsonResponse = new JSONObject(response);
                 chatAccessToken = infoJsonResponse.getString(JSON_TAG_CHAT_ACCESS_TOKEN);
