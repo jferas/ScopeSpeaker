@@ -185,8 +185,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userQueryTask.execute(PERISCOPE_URL + userName);
     }
 
-    private void schedulePeriscopeUserQuery() {
-        queueMessageToSay("No live streams found.  Will check again in " + secondsToWait + " seconds");
+    private void schedulePeriscopeUserQuery(int seconds) {
+        queueMessageToSay("Will check for more live streams in " + seconds + " seconds");
         handler = new Handler();
         the_runnable = new Runnable() {
             @Override
@@ -196,14 +196,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 userQuery();
             }
         };
-        handler.postDelayed(the_runnable, secondsToWait * 1000);
+        handler.postDelayed(the_runnable, seconds * 1000);
     }
 
     // process the successful result of a webQueryTask request
     public void webQueryResult(String response) {
         if (appState == State.AWAITING_BROADCAST_ID) {
-            userQueryTask.cancel(true);
-            userQueryTask = null;
+            if (userQueryTask != null) {
+                userQueryTask.cancel(true);
+                userQueryTask = null;
+            }
             broadcastID = extractBroadcastID(response);
             if (broadcastID != null) {
                 appState = State.AWAITING_CHAT_ACCESS_TOKEN;
@@ -230,11 +232,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     chatQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatURLAccessToken);
                 }
                 else {
-                    schedulePeriscopeUserQuery();
+                    schedulePeriscopeUserQuery(secondsToWait);
                 }
             }
             catch (JSONException e) {
-                schedulePeriscopeUserQuery();
+                schedulePeriscopeUserQuery(secondsToWait);
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
@@ -280,7 +282,21 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 int kind = chatMessage.getInt("kind");
                 if (kind == 1) {
                     response = response.replaceAll("\\\\", "");
+                    response = response.replace("\"{", "{");
+                    response = response.replace("}\"", "}");
                     extractAndSayMessage(response);
+
+/*
+   this is how it should have been done with proper JSON parsing
+   but because Periscope sends back data with lots of weird backslashes, we had
+   to do the call to extractAndSayMessage, which does raw sring parsing to get its data.
+   The current approach is pretty brittle, so we should find out why all the emedded  backslashes
+
+                    chatMessage = new JSONObject(response);
+                    JSONObject payload = chatMessage.getJSONObject("payload");
+                    JSONObject body = payload.getJSONObject("body");
+                    String msg = body.getString("body");
+*/
                 }
             }
             catch (JSONException e) {
@@ -305,9 +321,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 int sentence_start = secondbody + 7;
                 int sentence_end = msg.indexOf('"', sentence_start + 1);
                 String whatTheySaid = msg.substring(sentence_start, sentence_end);
-                int displayname_start = msg.indexOf("displayName", sentence_end);
+                int displayname_start = msg.indexOf("display_name", sentence_end);
                 if (displayname_start > 0) {
-                    int name_start = displayname_start + 14;
+                    int name_start = displayname_start + 15;
                     int name_end = msg.indexOf('"', name_start + 1);
                     String whoSaidIt = msg.substring(name_start, name_end);
                     queueMessageToSay(whoSaidIt + " said: " + whatTheySaid);
@@ -418,9 +434,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     public void onClose(WebSocketCloseNotification code, String reason) {
         this.mConnection = null;
 
-        String message = "Websocket Closed: " + code.name() + ", " + reason;
-        Log.d(TAG, message);
-        webQueryError(message);
+        queueMessageToSay("Chat server connection closed, attempting to reconnect");
+        schedulePeriscopeUserQuery(2);
     }
 
     @Override
