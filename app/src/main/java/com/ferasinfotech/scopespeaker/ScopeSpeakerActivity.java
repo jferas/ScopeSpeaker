@@ -2,10 +2,6 @@ package com.ferasinfotech.scopespeaker;
 
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.BoolRes;
-import android.support.annotation.StringDef;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -22,16 +18,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-//jjf
-//import org.java_websocket.drafts.Draft_75;
-//import org.java_websocket.client.WebSocketClient;
-//import org.java_websocket.handshake.ServerHandshake;
-//import org.java_websocket.drafts.Draft_17;
-
 import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
 import de.tavendo.autobahn.WebSocketConnection;
 import de.tavendo.autobahn.WebSocketException;
-
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -306,6 +295,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     JSONObject payload = chatMessage.getJSONObject("payload");
                     JSONObject body = payload.getJSONObject("body");
                     String msg = body.getString("body");
+                    Log.i(TAG, "parsed a valid body:" + msg);
 */
                 }
             }
