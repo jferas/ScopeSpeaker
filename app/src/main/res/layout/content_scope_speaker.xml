@@ -44,4 +44,11 @@
 
     </RelativeLayout>
 
+    <Button
+        android:id="@+id/save_chat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="saveChatToClipboard"
+        android:text="Save Chat to Clipboard" />
+
 </LinearLayout>

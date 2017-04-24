@@ -1,5 +1,7 @@
 package com.ferasinfotech.scopespeaker;
 
+import android.content.ClipData;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
@@ -15,7 +17,9 @@ import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
@@ -24,6 +28,9 @@ import de.tavendo.autobahn.WebSocketException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import android.content.ClipboardManager;
+import android.widget.Toast;
 
 public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocketConnectionObserver {
 
@@ -90,6 +97,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // commented out by jjf private WebSocketClient mWebSocketClient;
     private WebSocketConnection mConnection;
 
+    // string to hold log of chat
+    private String chatLog = "";
+
 
     // settings variables
     private Integer     secondsToWait = 30;
@@ -106,7 +116,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.1<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.4<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
     }
 
     // app shutdown - destroy allocated objects
@@ -154,6 +164,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             return true;
         }
         return super.onOptionsItemSelected(item);
+
+    }
+
+    // save the current chat to the Android clipboard
+    public void saveChatToClipboard(View v) {
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText(null, chatLog);
+        clipboard.setPrimaryClip(clip);
+        chatLog = "";
+        Toast.makeText(getApplicationContext(), "Chat messages saved to clipboard", Toast.LENGTH_SHORT).show();
     }
 
     // start the process of getting the chat messages for the specified user's live broadcast
@@ -312,6 +332,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         queueMessageToSay("Got a bad response from periscope: " + error);
     };
 
+    // append a chat message to the running chat log
+    private void appendToChatLog(String chatMessage) {
+        android.text.format.DateFormat df = new android.text.format.DateFormat();
+        String time_stamp = (String) df.format("yyyy-MM-dd hh:mm:ss a", new java.util.Date());
+        chatLog += time_stamp + chatMessage + "\n";
+    }
+
     private void extractAndSayMessage(String msg) {
         int firstbody = msg.indexOf("body");
         if (firstbody > 0) {
@@ -326,12 +353,22 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     int name_start = displayname_start + 15;
                     int name_end = msg.indexOf('"', name_start + 1);
                     String whoSaidIt = msg.substring(name_start, name_end);
-                    queueMessageToSay(whoSaidIt + " said: " + whatTheySaid);
+
+                    String chat_message;
+                    if (whatTheySaid.equals("joined")) {
+                        chat_message = whoSaidIt + " " + whatTheySaid;
+                    }
+                    else {
+                        chat_message = whoSaidIt + " said: " + whatTheySaid;
+                    }
+                    appendToChatLog(chat_message);
+                    queueMessageToSay(chat_message);
                 }
 
             }
         }
     }
+
     private String extractBroadcastID(String periscopeResponse) {
         int startOfVideoTag = periscopeResponse.indexOf(VIDEO_TAG);
         if (startOfVideoTag > 0) {
@@ -369,7 +406,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             speaking = true;
             queuedMessageBeingSaid = speak_string;
             setMessageView(speak_string);
-            ttsManager.initQueue(speak_string);
+            if (ttsManager != null) {
+                ttsManager.initQueue(speak_string);
+            }
         }
     }
 
