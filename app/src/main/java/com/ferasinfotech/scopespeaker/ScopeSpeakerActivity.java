@@ -116,7 +116,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.4<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.5<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
     }
 
     // app shutdown - destroy allocated objects
@@ -336,7 +336,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private void appendToChatLog(String chatMessage) {
         android.text.format.DateFormat df = new android.text.format.DateFormat();
         String time_stamp = (String) df.format("yyyy-MM-dd hh:mm:ss a", new java.util.Date());
-        chatLog += time_stamp + chatMessage + "\n";
+        chatLog += time_stamp + "  " + chatMessage + "\n";
     }
 
     private void extractAndSayMessage(String msg) {
