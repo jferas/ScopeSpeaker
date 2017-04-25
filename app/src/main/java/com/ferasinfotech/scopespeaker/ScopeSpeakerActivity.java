@@ -116,7 +116,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.5<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.6<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
     }
 
     // app shutdown - destroy allocated objects
@@ -195,7 +195,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     }
 
     private void schedulePeriscopeUserQuery(int seconds) {
-        queueMessageToSay("Will check for more live streams in " + seconds + " seconds");
+        queueMessageToSay("Will check for live streams in " + seconds + " seconds");
         if (handler != null) {
             handler.removeCallbacks(the_runnable);
             handler = null;
@@ -326,10 +326,15 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
     };
 
-    // process the error result of a webQueryTask request
+    // process the error result of a webQueryTask request .. schedule a new user query
     public void webQueryError(String error) {
-        appState = State.AWAITING_USER_REQUEST;
         queueMessageToSay("Got a bad response from periscope: " + error);
+        ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                schedulePeriscopeUserQuery(secondsToWait);
+            }
+        });
     };
 
     // append a chat message to the running chat log
@@ -387,6 +392,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // queues a message that is of higher priority than tweets, will be dequeued in sayNext method
     private void queueMessageToSay(String msg) {
         messages.add(msg);
+        int queue_size = messages.size();
+        if ( ((queue_size / 10) * 10) == queue_size) {
+            messages.add("Message queue depth: " + queue_size);
+        }
         if (!speaking) {
             sayNext();
         }
