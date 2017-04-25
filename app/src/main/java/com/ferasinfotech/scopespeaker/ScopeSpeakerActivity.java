@@ -394,7 +394,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         messages.add(msg);
         int queue_size = messages.size();
         if ( ((queue_size / 10) * 10) == queue_size) {
-            messages.add("Message queue depth: " + queue_size);
+            messages.add("Scope Speaker queue depth: " + queue_size);
         }
         if (!speaking) {
             sayNext();
