@@ -107,16 +107,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         createTextToSpeechManager();
-
         setContentView(R.layout.activity_scope_speaker);
         userNameText = (TextView) findViewById(R.id.username);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.6<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.7<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
     }
 
     // app shutdown - destroy allocated objects
@@ -185,6 +183,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userQuery();
     }
 
+    // send a query about the user named in the userNameText text object to the periscope web server
     private void userQuery() {
         userName = (String) userNameText.getText().toString();
         queueMessageToSay("Looking for a Periscope live stream by " + userName);
@@ -194,6 +193,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userQueryTask.execute(PERISCOPE_URL + userName);
     }
 
+    // schedule a user query to be run a given number of seconds from now
     private void schedulePeriscopeUserQuery(int seconds) {
         queueMessageToSay("Will check for live streams in " + seconds + " seconds");
         if (handler != null) {
@@ -212,7 +212,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         handler.postDelayed(the_runnable, seconds * 1000);
     }
 
-    // process the successful result of a webQueryTask request
+    // process the successful result of a webQueryTask request (this drives app state forward through expected states)
     public void webQueryResult(String response) {
         if (appState == State.AWAITING_BROADCAST_ID) {
             if (userQueryTask != null) {
@@ -297,31 +297,23 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
         else if (appState == State.AWAITING_CHAT_MESSAGES) {
             try {
+                response = response.replaceAll("\\\\", "");
+                response = response.replace("\"{", "{");
+                response = response.replace("}\"", "}");
+
                 JSONObject chatMessage = new JSONObject(response);
                 int kind = chatMessage.getInt("kind");
+                String chat_message = null;
                 if (kind == 1) {
-                    response = response.replaceAll("\\\\", "");
-                    response = response.replace("\"{", "{");
-                    response = response.replace("}\"", "}");
-                    extractAndSayMessage(response);
-
-/*
-   this is how it should have been done with proper JSON parsing
-   but because Periscope sends back data with lots of weird backslashes, we had
-   to do the call to extractAndSayMessage, which does raw sring parsing to get its data.
-   The current approach is pretty brittle, so we should find out why all the emedded  backslashes
-
-                    chatMessage = new JSONObject(response);
-                    JSONObject payload = chatMessage.getJSONObject("payload");
-                    JSONObject body = payload.getJSONObject("body");
-                    String msg = body.getString("body");
-                    Log.i(TAG, "parsed a valid body:" + msg);
-*/
+                    chat_message = extractChatMessage(chatMessage);
+                }
+                if (chat_message != null) {
+                    appendToChatLog(chat_message);
+                    queueMessageToSay(chat_message);
                 }
             }
             catch (JSONException e) {
-                Log.i(TAG, "chat parse exception:" + e.getMessage());
-                Log.i(TAG, "we broke");
+                Log.i(TAG, "chat parse exception when parsing message kind:" + e.getMessage());
             }
         }
     };
@@ -344,36 +336,30 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         chatLog += time_stamp + "  " + chatMessage + "\n";
     }
 
-    private void extractAndSayMessage(String msg) {
-        int firstbody = msg.indexOf("body");
-        if (firstbody > 0) {
-            int secondbody = msg.indexOf("body", firstbody + 6);
-            if (secondbody > 0) {
-                Log.d(TAG, "Chat message:" + msg);
-                int sentence_start = secondbody + 7;
-                int sentence_end = msg.indexOf('"', sentence_start + 1);
-                String whatTheySaid = msg.substring(sentence_start, sentence_end);
-                int displayname_start = msg.indexOf("display_name", sentence_end);
-                if (displayname_start > 0) {
-                    int name_start = displayname_start + 15;
-                    int name_end = msg.indexOf('"', name_start + 1);
-                    String whoSaidIt = msg.substring(name_start, name_end);
+    // extract a chat message from a JSON packet sent by the Periscope chat server
+    private String extractChatMessage(JSONObject chatMessage) {
+        try {
+            JSONObject payload = chatMessage.getJSONObject("payload");
+            JSONObject body = payload.getJSONObject("body");
+            String what_they_said = body.getString("body");
+            JSONObject sender = payload.getJSONObject("sender");
+            String who_said_it = sender.getString("display_name");
 
-                    String chat_message;
-                    if (whatTheySaid.equals("joined")) {
-                        chat_message = whoSaidIt + " " + whatTheySaid;
-                    }
-                    else {
-                        chat_message = whoSaidIt + " said: " + whatTheySaid;
-                    }
-                    appendToChatLog(chat_message);
-                    queueMessageToSay(chat_message);
-                }
-
+            String chat_message;
+            if (what_they_said.equals("joined")) {
+                chat_message = who_said_it + " " + what_they_said;
+            } else {
+                chat_message = who_said_it + " said: " + what_they_said;
             }
+            return chat_message;
+        }
+        catch (JSONException e) {
+            //Log.i(TAG, "chat parse exception when parsing message body:" + e.getMessage());
+            return null;
         }
     }
 
+    // extract a broadcast ID for the first broadcast of a user's list of broadcasts returned by the user query
     private String extractBroadcastID(String periscopeResponse) {
         int startOfVideoTag = periscopeResponse.indexOf(VIDEO_TAG);
         if (startOfVideoTag > 0) {
@@ -389,7 +375,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     }
 
 
-    // queues a message that is of higher priority than tweets, will be dequeued in sayNext method
+    // queues a message that will be dequeued in sayNext method
     private void queueMessageToSay(String msg) {
         messages.add(msg);
         int queue_size = messages.size();
