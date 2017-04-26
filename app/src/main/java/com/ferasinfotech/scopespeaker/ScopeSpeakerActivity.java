@@ -305,7 +305,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 int kind = chatMessage.getInt("kind");
                 String chat_message = null;
                 if (kind == 1) {
-                    chat_message = extractChatMessage(chatMessage);
+                    chat_message = extractChatMessage(response);
                 }
                 if (chat_message != null) {
                     appendToChatLog(chat_message);
@@ -314,6 +314,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
             catch (JSONException e) {
                 Log.i(TAG, "chat parse exception when parsing message kind:" + e.getMessage());
+                Toast.makeText(getApplicationContext(), "Chat message parse error", Toast.LENGTH_SHORT).show();
+                queuePriorityMessageToSay("Chat message parse error");
+                appendToChatLog("Chat message parse error: " + response);
             }
         }
     };
@@ -337,13 +340,22 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     }
 
     // extract a chat message from a JSON packet sent by the Periscope chat server
-    private String extractChatMessage(JSONObject chatMessage) {
+    private String extractChatMessage(String chatString) {
         try {
+            JSONObject chatMessage = new JSONObject(chatString);
             JSONObject payload = chatMessage.getJSONObject("payload");
-            JSONObject body = payload.getJSONObject("body");
-            String what_they_said = body.getString("body");
-            JSONObject sender = payload.getJSONObject("sender");
-            String who_said_it = sender.getString("display_name");
+            String what_they_said = null;
+            String who_said_it = null;
+            try {
+                JSONObject body = payload.getJSONObject("body");
+                what_they_said = body.getString("body");
+                JSONObject sender = payload.getJSONObject("sender");
+                who_said_it = sender.getString("display_name");
+            }
+            catch (JSONException e) {
+                // missing inner tags is not an error but is not a good chat message
+                return null;
+            }
 
             String chat_message;
             if (what_they_said.equals("joined")) {
@@ -354,7 +366,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             return chat_message;
         }
         catch (JSONException e) {
-            //Log.i(TAG, "chat parse exception when parsing message body:" + e.getMessage());
+            // missing payload is a JSON syntactic error and should be logged
+            Log.i(TAG, "chat parse exception when parsing message payload:" + e.getMessage());
+            Toast.makeText(getApplicationContext(), "Chat message payload parse error", Toast.LENGTH_SHORT).show();
+            queuePriorityMessageToSay("Chat message payload parse error");
+            appendToChatLog("Payload parse error: " + chatString);
             return null;
         }
     }
@@ -375,12 +391,24 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     }
 
 
+    // puts a message at the front of the queue to be heard immediately (or as soon as current speech finishes)
+    private void queuePriorityMessageToSay(String msg) {
+        messages.add(0, msg);
+        if (!speaking) {
+            sayNext();
+        }
+    }
+
     // queues a message that will be dequeued in sayNext method
     private void queueMessageToSay(String msg) {
         messages.add(msg);
         int queue_size = messages.size();
-        if ( ((queue_size / 10) * 10) == queue_size) {
-            messages.add("Scope Speaker queue depth: " + queue_size);
+
+        if ( ((queue_size / 5) * 5) == queue_size) {
+            // put queue depth message at the front of the queue so it is heard immediately
+            messages.add(0, "Scope Speaker queue depth: " + queue_size);
+            appendToChatLog("Scope Speaker queue depth: " + queue_size);
+            Toast.makeText(getApplicationContext(), "Scope Speaker queue depth: " + queue_size, Toast.LENGTH_SHORT).show();
         }
         if (!speaking) {
             sayNext();
