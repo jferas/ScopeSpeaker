@@ -114,7 +114,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.7<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.8<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
     }
 
     // app shutdown - destroy allocated objects
@@ -296,6 +296,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
         }
         else if (appState == State.AWAITING_CHAT_MESSAGES) {
+            String raw_response = response;
             try {
                 response = response.replaceAll("\\\\", "");
                 response = response.replace("\"{", "{");
@@ -317,6 +318,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 Toast.makeText(getApplicationContext(), "Chat message parse error", Toast.LENGTH_SHORT).show();
                 queuePriorityMessageToSay("Chat message parse error");
                 appendToChatLog("Chat message parse error: " + response);
+                appendToChatLog("Raw JSON of chat message: " + raw_response);
             }
         }
     };
