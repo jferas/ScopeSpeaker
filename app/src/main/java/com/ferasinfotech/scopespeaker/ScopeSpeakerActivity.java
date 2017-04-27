@@ -312,6 +312,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 JSONObject chatMessage = new JSONObject(response);
                 int kind = chatMessage.getInt("kind");
                 String chat_message = null;
+
+                // For debugging only .. save raw chat message to chat log that can be sent to the clipboard
+                //appendToChatLog("Raw chat message: " + response);
+
                 if (kind == 1) {
                     chat_message = extractChatMessage(response);
                 }
