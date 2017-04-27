@@ -107,6 +107,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         createTextToSpeechManager();
         setContentView(R.layout.activity_scope_speaker);
         userNameText = (TextView) findViewById(R.id.username);
@@ -114,7 +115,18 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.8<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.9<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+
+        /**** Some test code to allow JSON parsing to be tested from data in the clipboard
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = clipboard.getPrimaryClip();
+        String response = clip.getItemAt(0).getText().toString();
+        String result = extractChatMessage(response);
+        setMessageView(result);
+        *********/
+
+
+
     }
 
     // app shutdown - destroy allocated objects
@@ -296,12 +308,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
         }
         else if (appState == State.AWAITING_CHAT_MESSAGES) {
-            String raw_response = response;
             try {
-                response = response.replaceAll("\\\\", "");
-                response = response.replace("\"{", "{");
-                response = response.replace("}\"", "}");
-
                 JSONObject chatMessage = new JSONObject(response);
                 int kind = chatMessage.getInt("kind");
                 String chat_message = null;
@@ -318,7 +325,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 Toast.makeText(getApplicationContext(), "Chat message parse error", Toast.LENGTH_SHORT).show();
                 queuePriorityMessageToSay("Chat message parse error");
                 appendToChatLog("Chat message parse error: " + response);
-                appendToChatLog("Raw JSON of chat message: " + raw_response);
             }
         }
     };
@@ -345,13 +351,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private String extractChatMessage(String chatString) {
         try {
             JSONObject chatMessage = new JSONObject(chatString);
-            JSONObject payload = chatMessage.getJSONObject("payload");
+            String payloadString = chatMessage.getString("payload");
+            JSONObject payload = new JSONObject(payloadString);
             String what_they_said = null;
             String who_said_it = null;
             try {
-                JSONObject body = payload.getJSONObject("body");
-                what_they_said = body.getString("body");
-                JSONObject sender = payload.getJSONObject("sender");
+                String bodyString = payload.getString("body");
+                JSONObject outerBody = new JSONObject(bodyString);
+                what_they_said = outerBody.getString("body");
+                String senderString = payload.getString("sender");
+                JSONObject sender = new JSONObject(senderString);
                 who_said_it = sender.getString("display_name");
             }
             catch (JSONException e) {
