@@ -52,6 +52,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     private State appState = null;
 
+    // settings variables
+    private Boolean saying_joined_messages = true;
+    private Boolean saying_departure_messages = false;
+
     // state variable indicating whether speech is in progress or not
     private Boolean      speaking = false;
 
@@ -115,7 +119,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.9<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.12<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
 
         /**** Some test code to allow JSON parsing to be tested from data in the clipboard
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -137,6 +141,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         if (handler != null) {
             handler.removeCallbacks(the_runnable);
             handler = null;
+        }
+        if ( (mConnection != null) && (mConnection.isConnected()) ) {
+            disconnect();
         }
     }
 
@@ -240,6 +247,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
             else {
                 queueMessageToSay(userName + " has no broadcasts");
+                schedulePeriscopeUserQuery(secondsToWait);
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
@@ -308,27 +316,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
         }
         else if (appState == State.AWAITING_CHAT_MESSAGES) {
-            try {
-                JSONObject chatMessage = new JSONObject(response);
-                int kind = chatMessage.getInt("kind");
-                String chat_message = null;
 
-                // For debugging only .. save raw chat message to chat log that can be sent to the clipboard
-                //appendToChatLog("Raw chat message: " + response);
+            // For debugging only .. save raw chat message to chat log that can be sent to the clipboard
+            //appendToChatLog("Raw chat message: " + response);
 
-                if (kind == 1) {
-                    chat_message = extractChatMessage(response);
-                }
-                if (chat_message != null) {
-                    appendToChatLog(chat_message);
-                    queueMessageToSay(chat_message);
-                }
-            }
-            catch (JSONException e) {
-                Log.i(TAG, "chat parse exception when parsing message kind:" + e.getMessage());
-                Toast.makeText(getApplicationContext(), "Chat message parse error", Toast.LENGTH_SHORT).show();
-                queuePriorityMessageToSay("Chat message parse error");
-                appendToChatLog("Chat message parse error: " + response);
+            // extract the name of the sender and the message they sent, and form a message to say
+            String message_to_say = extractChatMessage(response);
+
+            if (message_to_say != null) {
+                appendToChatLog(message_to_say);
+                queueMessageToSay(message_to_say);
             }
         }
     };
@@ -355,28 +352,52 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private String extractChatMessage(String chatString) {
         try {
             JSONObject chatMessage = new JSONObject(chatString);
+            int kind = chatMessage.getInt("kind");
             String payloadString = chatMessage.getString("payload");
             JSONObject payload = new JSONObject(payloadString);
-            String what_they_said = null;
+            String what_they_said = "";
             String who_said_it = null;
-            try {
-                String bodyString = payload.getString("body");
-                JSONObject outerBody = new JSONObject(bodyString);
-                what_they_said = outerBody.getString("body");
+            if (kind == 1) {
+                try {
+                    String bodyString = payload.getString("body");
+                    JSONObject outerBody = new JSONObject(bodyString);
+                    what_they_said = outerBody.getString("body");
+                    String senderString = payload.getString("sender");
+                    JSONObject sender = new JSONObject(senderString);
+                    who_said_it = sender.getString("display_name");
+                    if (what_they_said.equals("joined")) {
+                        return null;
+                    }
+                } catch (JSONException e) {
+                    // missing inner tags is not an error but is not a good chat message
+                    return null;
+                }
+            }
+            else if (kind == 2) {
+                int payloadKind = payload.getInt("kind");
                 String senderString = payload.getString("sender");
                 JSONObject sender = new JSONObject(senderString);
-                who_said_it = sender.getString("display_name");
-            }
-            catch (JSONException e) {
-                // missing inner tags is not an error but is not a good chat message
-                return null;
+                if (payloadKind == 1) {
+                    if (saying_joined_messages) {
+                        who_said_it = sender.getString("display_name");
+                        what_they_said = "joined";
+                    }
+                }
+                else if (payloadKind == 2) {
+                    if (saying_departure_messages) {
+                        who_said_it = sender.getString("display_name");
+                        what_they_said = "left";
+                    }
+                }
             }
 
-            String chat_message;
-            if (what_they_said.equals("joined")) {
-                chat_message = who_said_it + " " + what_they_said;
-            } else {
-                chat_message = who_said_it + " said: " + what_they_said;
+            String chat_message = null;
+            if (who_said_it != null) {
+                if ( (what_they_said.equals("left")) || (what_they_said.equals("joined"))) {
+                    chat_message = who_said_it + " " + what_they_said;
+                } else {
+                    chat_message = who_said_it + " said: " + what_they_said;
+                }
             }
             return chat_message;
         }
@@ -494,6 +515,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     public void disconnect() {
         mConnection.disconnect();
+        mConnection = null;
     }
 
     //
