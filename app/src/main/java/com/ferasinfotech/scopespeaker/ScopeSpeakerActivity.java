@@ -54,7 +54,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // settings variables
     private Boolean saying_joined_messages = true;
-    private Boolean saying_departure_messages = false;
+    private Boolean saying_departure_messages = true;
 
     // state variable indicating whether speech is in progress or not
     private Boolean      speaking = false;
@@ -119,7 +119,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.12<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.13<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
 
         /**** Some test code to allow JSON parsing to be tested from data in the clipboard
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -366,6 +366,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     JSONObject sender = new JSONObject(senderString);
                     who_said_it = sender.getString("display_name");
                     if (what_they_said.equals("joined")) {
+                        //Log.i(TAG, "got a textual join message:" + chatString);
                         return null;
                     }
                 } catch (JSONException e) {
@@ -381,12 +382,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     if (saying_joined_messages) {
                         who_said_it = sender.getString("display_name");
                         what_they_said = "joined";
+                        //Log.i(TAG, "got an encoded join message:" + chatString);
                     }
                 }
                 else if (payloadKind == 2) {
                     if (saying_departure_messages) {
                         who_said_it = sender.getString("display_name");
                         what_they_said = "left";
+                        //Log.i(TAG, "got an encoded left message:" + chatString);
                     }
                 }
             }
