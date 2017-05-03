@@ -51,4 +51,45 @@
         android:onClick="saveChatToClipboard"
         android:text="Save Chat to Clipboard" />
 
+    <Button
+        android:id="@+id/join_messages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="toggleJoinMessages"
+        android:text="Tap to Disable Join Messages" />
+
+    <Button
+        android:id="@+id/left_messages"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="toggleLeftMessages"
+        android:text="Tap to Disable Left Messages" />
+
+    <TextView
+        android:text="High Water"
+        android:layout_width="180dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true" />
+
+    <EditText
+        android:id="@+id/high_water_mark"
+        android:text="10"
+        android:layout_width="180dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true" />
+
+    <TextView
+        android:text="Low Water"
+        android:layout_width="180dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true" />
+
+    <EditText
+        android:id="@+id/low_water_mark"
+        android:text="5"
+        android:layout_width="180dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true" />
+
+
 </LinearLayout>

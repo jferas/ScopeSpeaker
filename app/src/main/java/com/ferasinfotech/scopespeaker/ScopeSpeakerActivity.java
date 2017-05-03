@@ -11,15 +11,13 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.webkit.WebView;
-import android.widget.EditText;
+import android.widget.Button;
 import android.widget.TextView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
@@ -52,15 +50,27 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     private State appState = null;
 
-    // settings variables
+    // settings variables for room announcements
     private Boolean saying_joined_messages = true;
-    private Boolean saying_departure_messages = true;
+    private Boolean saying_left_messages = true;
+
+    // settings variables for flow control
+    private int     highWaterMark = 10;
+    private int     lowWaterMark = 5;
+    private Boolean droppingMessages = false;
+
+    // text widgets for high and low water marks
+    private TextView highWaterMarkText = null;
+    private TextView lowWaterMarkText = null;
 
     // state variable indicating whether speech is in progress or not
     private Boolean      speaking = false;
 
     private WebView      messageView = null;
     private TTSManager   ttsManager = null;
+
+    private Button       joinMessagesButton = null;
+    private Button       leftMessagesButton = null;
 
     private WebQueryTask userQueryTask = null;
     private WebQueryTask infoQueryTask = null;
@@ -115,11 +125,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         createTextToSpeechManager();
         setContentView(R.layout.activity_scope_speaker);
         userNameText = (TextView) findViewById(R.id.username);
+        highWaterMarkText = (TextView) findViewById(R.id.high_water_mark);
+        lowWaterMarkText = (TextView) findViewById(R.id.low_water_mark);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
-        setMessageView("ScopeSpeaker v0.13<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        joinMessagesButton = (Button) findViewById(R.id.join_messages);
+        leftMessagesButton = (Button) findViewById(R.id.left_messages);
+
+        setMessageView("ScopeSpeaker v0.14<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
 
         /**** Some test code to allow JSON parsing to be tested from data in the clipboard
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -184,6 +199,30 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     }
 
+    // toggle whether join messages are said or not
+    public void toggleJoinMessages(View v) {
+        if (saying_joined_messages) {
+            saying_joined_messages = false;
+            joinMessagesButton.setText("Tap to Enable Join Messages");
+        }
+        else {
+            saying_joined_messages = true;
+            joinMessagesButton.setText("Tap to Disable Join Messages");
+        }
+    }
+
+    // toggle whether left messages are said or not
+    public void toggleLeftMessages(View v) {
+        if (saying_left_messages) {
+            saying_left_messages = false;
+            leftMessagesButton.setText("Tap to Enable Left Messages");
+        }
+        else {
+            saying_left_messages = true;
+            leftMessagesButton.setText("Tap to Disable Left Messages");
+        }
+    }
+
     // save the current chat to the Android clipboard
     public void saveChatToClipboard(View v) {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -195,11 +234,33 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // start the process of getting the chat messages for the specified user's live broadcast
     public void processChatMessages(View v) {
+        int high_water_mark_orig = highWaterMark;
+        int low_water_mark_orig = lowWaterMark;
         if (handler != null) {
             handler.removeCallbacks(the_runnable);
             handler = null;
         }
-        userQuery();
+        try {
+            highWaterMark = Integer.parseInt(highWaterMarkText.getText().toString());
+            lowWaterMark = Integer.parseInt(lowWaterMarkText.getText().toString());
+            if (lowWaterMark < highWaterMark) {
+                userQuery();
+            }
+            else {
+                Toast.makeText(getApplicationContext(), "Low water mark must be less than high water mark", Toast.LENGTH_SHORT).show();
+                highWaterMark = high_water_mark_orig;
+                lowWaterMark = low_water_mark_orig;
+                highWaterMarkText.setText(Integer.toString(highWaterMark));
+                lowWaterMarkText.setText(Integer.toString(lowWaterMark));
+            }
+        }
+        catch (NumberFormatException e) {
+            Toast.makeText(getApplicationContext(), "Illegal values entered", Toast.LENGTH_SHORT).show();
+            highWaterMark = high_water_mark_orig;
+            lowWaterMark = low_water_mark_orig;
+            highWaterMarkText.setText(Integer.toString(highWaterMark));
+            lowWaterMarkText.setText(Integer.toString(lowWaterMark));
+        }
     }
 
     // send a query about the user named in the userNameText text object to the periscope web server
@@ -386,7 +447,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     }
                 }
                 else if (payloadKind == 2) {
-                    if (saying_departure_messages) {
+                    if (saying_left_messages) {
                         who_said_it = sender.getString("display_name");
                         what_they_said = "left";
                         //Log.i(TAG, "got an encoded left message:" + chatString);
@@ -440,14 +501,20 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // queues a message that will be dequeued in sayNext method
     private void queueMessageToSay(String msg) {
+        if (droppingMessages) {
+            return;
+        }
+
         messages.add(msg);
         int queue_size = messages.size();
 
-        if ( ((queue_size / 5) * 5) == queue_size) {
-            // put queue depth message at the front of the queue so it is heard immediately
-            messages.add(0, "Scope Speaker queue depth: " + queue_size);
-            appendToChatLog("Scope Speaker queue depth: " + queue_size);
-            Toast.makeText(getApplicationContext(), "Scope Speaker queue depth: " + queue_size, Toast.LENGTH_SHORT).show();
+        if (queue_size == highWaterMark) {
+            // we've fallen behine and need to stop saying messages, put fall behind msg at the front of the queue so it is heard immediately
+            messages.add(0, "Scope Speaker has fallen behind by " + highWaterMark + "messages, chat messages won't be said till caught up");
+            appendToChatLog("Scope Speaker has fallen behind by " + highWaterMark + "messages, chat messages won't be said till caught up");
+            Toast.makeText(getApplicationContext(), "Scope Speaker has fallen behind by " + highWaterMark + "messages, chat messages won't be said till caught up",
+                    Toast.LENGTH_SHORT).show();
+            droppingMessages = true;
         }
         if (!speaking) {
             sayNext();
@@ -463,9 +530,17 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
 
         if (!messages.isEmpty()) {
+            speaking = true;
             speak_string = messages.get(0);
             messages.remove(0);
-            speaking = true;
+            if ( (droppingMessages) && (messages.size()) == lowWaterMark) {
+                // we're crossing back to the low water mark, allow saying new messages, announce we're doing so, and put msg back in queue
+                droppingMessages = false;
+                messages.add(0, speak_string);
+                speak_string = "Scope Speaker has recovered, new messages will resume being said";
+                appendToChatLog(speak_string);
+                Toast.makeText(getApplicationContext(), speak_string, Toast.LENGTH_SHORT).show();
+            }
             queuedMessageBeingSaid = speak_string;
             setMessageView(speak_string);
             if (ttsManager != null) {
