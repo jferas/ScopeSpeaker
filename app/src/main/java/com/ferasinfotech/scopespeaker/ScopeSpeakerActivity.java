@@ -2,6 +2,7 @@ package com.ferasinfotech.scopespeaker;
 
 import android.content.ClipData;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
@@ -10,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.TextView;
@@ -57,11 +59,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // settings variables for flow control
     private int     highWaterMark = 10;
     private int     lowWaterMark = 5;
+    private int     afterMsgDelay = 5;
     private Boolean droppingMessages = false;
 
-    // text widgets for high and low water marks
+    // text widgets for input parameters
     private TextView highWaterMarkText = null;
     private TextView lowWaterMarkText = null;
+    private TextView afterMsgDelayText = null;
 
     // state variable indicating whether speech is in progress or not
     private Boolean      speaking = false;
@@ -79,6 +83,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // timer variables
     private Handler     handler = null;
     private Runnable    the_runnable = null;
+    private Handler     pause_handler = null;
+    private Runnable    pause_runnable = null;
 
 
     // storage for queue of messages that are spoken on a FIFO basis
@@ -127,6 +133,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userNameText = (TextView) findViewById(R.id.username);
         highWaterMarkText = (TextView) findViewById(R.id.high_water_mark);
         lowWaterMarkText = (TextView) findViewById(R.id.low_water_mark);
+        afterMsgDelayText = (TextView) findViewById(R.id.after_msg_pause);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -134,7 +141,17 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.14<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, and read the stream chat messages aloud.");
+        setMessageView("ScopeSpeaker v0.15<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, "
+                + " and read the stream chat messages aloud.<br><br>"
+        + "High and Low Water Marks control when messages will stop being said (when the queue is deeper than High Water Mark)"
+        + "and when they will resume being said (when the queue gets as small as Low Water Mark<br><br>"
+        + "Pause refers to the delay after any message so the broadcaster can say something uninterrupted");
+
+        // keep keyboard from popping up at ap startup
+        this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        // restore the settings
+        restoreSettings();
 
         /**** Some test code to allow JSON parsing to be tested from data in the clipboard
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -152,10 +169,15 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     @Override
     public void onDestroy() {
         super.onDestroy();
+        saveSettings();
         destroyTextToSpeechManager();
         if (handler != null) {
             handler.removeCallbacks(the_runnable);
             handler = null;
+        }
+        if (pause_handler != null) {
+            pause_handler.removeCallbacks(pause_runnable);
+            pause_handler = null;
         }
         if ( (mConnection != null) && (mConnection.isConnected()) ) {
             disconnect();
@@ -174,6 +196,41 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             ttsManager.shutDown();
             ttsManager = null;
         }
+    }
+
+    // update permanent storage with settings
+    private void saveSettings() {
+        SharedPreferences settings = getPreferences(0);
+        SharedPreferences.Editor editor = settings.edit();
+        try {
+            highWaterMark = Integer.parseInt(highWaterMarkText.getText().toString());
+            lowWaterMark = Integer.parseInt(lowWaterMarkText.getText().toString());
+            afterMsgDelay = Integer.parseInt(afterMsgDelayText.getText().toString());
+            userName = (String) userNameText.getText().toString();
+
+            editor.putInt("highWaterMark", highWaterMark);
+            editor.putInt("lowWaterMark", lowWaterMark);
+            editor.putInt("afterMsgDelay", afterMsgDelay);
+            editor.putString("streamLocator", userName);
+            editor.apply();
+        }
+        catch (NumberFormatException e) {
+            Toast.makeText(getApplicationContext(), "Number formatting problem saving settings", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // restore settings from permanent storage
+    private void restoreSettings() {
+        SharedPreferences settings = getPreferences(0);
+        highWaterMark = settings.getInt("highWaterMark", 10);
+        lowWaterMark = settings.getInt("lowWaterMark", 5);
+        afterMsgDelay = settings.getInt("afterMsgDelay", 0);
+        userName = settings.getString("streamLocator", "Broadcaster Name");
+
+        highWaterMarkText.setText(Integer.toString(highWaterMark));
+        lowWaterMarkText.setText(Integer.toString(lowWaterMark));
+        afterMsgDelayText.setText(Integer.toString(afterMsgDelay));
+        userNameText.setText(userName);
     }
 
 
@@ -236,13 +293,19 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     public void processChatMessages(View v) {
         int high_water_mark_orig = highWaterMark;
         int low_water_mark_orig = lowWaterMark;
+        int after_msg_delay_orig = afterMsgDelay;
         if (handler != null) {
             handler.removeCallbacks(the_runnable);
             handler = null;
         }
+        if (pause_handler != null) {
+            pause_handler.removeCallbacks(pause_runnable);
+            pause_handler = null;
+        }
         try {
             highWaterMark = Integer.parseInt(highWaterMarkText.getText().toString());
             lowWaterMark = Integer.parseInt(lowWaterMarkText.getText().toString());
+            afterMsgDelay = Integer.parseInt(afterMsgDelayText.getText().toString());
             if (lowWaterMark < highWaterMark) {
                 userQuery();
             }
@@ -258,8 +321,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             Toast.makeText(getApplicationContext(), "Illegal values entered", Toast.LENGTH_SHORT).show();
             highWaterMark = high_water_mark_orig;
             lowWaterMark = low_water_mark_orig;
+            afterMsgDelay = after_msg_delay_orig;
             highWaterMarkText.setText(Integer.toString(highWaterMark));
             lowWaterMarkText.setText(Integer.toString(lowWaterMark));
+            afterMsgDelayText.setText(Integer.toString(afterMsgDelay));
         }
     }
 
@@ -551,16 +616,41 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
 
     // invoked by text to speech object when something is done being said
+    // if a delay is desired after each message the timer is kicked off here to schedule the next message,
+    //   otherwise the next message is kicked off.
     //  Note: speech object doesn't run on UI thread, but the chat logic does, so we have to use 'runOnUiThread' invocation
     public void speechComplete () {
         speaking = false;
-        ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                queuedMessageBeingSaid = null;
-                sayNext();
+        if (afterMsgDelay == 0) {
+            ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    queuedMessageBeingSaid = null;
+                    sayNext();
+                }
+            });
+        }
+        else {
+            if (pause_handler != null) {
+                pause_handler.removeCallbacks(pause_runnable);
+                pause_handler = null;
             }
-        });
+            Toast.makeText(getApplicationContext(), "Pause to allow a response", Toast.LENGTH_SHORT).show();
+            pause_handler = new Handler();
+            pause_runnable = new Runnable() {
+                @Override
+                public void run() {
+                    ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            queuedMessageBeingSaid = null;
+                            sayNext();
+                        }
+                    });
+                }
+            };
+            pause_handler.postDelayed(pause_runnable, afterMsgDelay * 1000);
+        }
     }
 
 

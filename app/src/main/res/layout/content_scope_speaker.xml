@@ -9,9 +9,78 @@
     tools:context="com.ferasinfotech.scopespeaker.ScopeSpeakerActivity"
     tools:showIn="@layout/activity_scope_speaker">
 
+    <Button
+        android:id="@+id/start"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="processChatMessages"
+        android:text="Say Messages From Periscopes of"
+        android:layout_alignParentLeft="true" />
+
+    <EditText
+        android:id="@+id/username"
+        android:text="Broadcaster Name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="15dp"
+        android:layout_marginTop="4dp" >
+
+        <TextView
+            android:text="High Water Mark"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:layout_alignParentLeft="true" />
+
+        <TextView
+            android:text="Low Water Mark"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textStyle="bold" />
+
+        <TextView
+            android:text="Pause (seconds)"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:layout_alignParentRight="true" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp" >
+
+        <EditText
+            android:id="@+id/high_water_mark"
+            android:text="10"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true" />
+
+        <EditText
+            android:id="@+id/low_water_mark"
+            android:text="5"
+            android:layout_width="120dp"
+            android:layout_centerInParent="true"
+            android:layout_height="wrap_content" />
+
+        <EditText
+            android:id="@+id/after_msg_pause"
+            android:text="0"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true" />
+    </RelativeLayout>
+
     <LinearLayout android:background="@drawable/border"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="230dp"
         android:padding="2dp">
 
         <WebView android:id="@+id/messageView"
@@ -20,36 +89,6 @@
             android:textColor="#000000"
             android:focusable="false" />
     </LinearLayout>
-
-    <RelativeLayout
-        android:id="@+id/listenButtonView"
-        android:layout_width="match_parent"
-        android:layout_height="54dp"
-        android:layout_marginTop="4dp" >
-
-        <EditText
-            android:id="@+id/username"
-            android:text="johnferas"
-            android:layout_width="180dp"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true" />
-
-        <Button
-            android:id="@+id/start"
-            android:layout_width="180dp"
-            android:layout_height="wrap_content"
-            android:onClick="processChatMessages"
-            android:text="Say Messages"
-            android:layout_alignParentRight="true" />
-
-    </RelativeLayout>
-
-    <Button
-        android:id="@+id/save_chat"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="saveChatToClipboard"
-        android:text="Save Chat to Clipboard" />
 
     <Button
         android:id="@+id/join_messages"
@@ -65,31 +104,12 @@
         android:onClick="toggleLeftMessages"
         android:text="Tap to Disable Left Messages" />
 
-    <TextView
-        android:text="High Water"
-        android:layout_width="180dp"
+    <Button
+        android:id="@+id/save_chat"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true" />
-
-    <EditText
-        android:id="@+id/high_water_mark"
-        android:text="10"
-        android:layout_width="180dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true" />
-
-    <TextView
-        android:text="Low Water"
-        android:layout_width="180dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true" />
-
-    <EditText
-        android:id="@+id/low_water_mark"
-        android:text="5"
-        android:layout_width="180dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true" />
+        android:onClick="saveChatToClipboard"
+        android:text="Save Chat to Clipboard" />
 
 
 </LinearLayout>
