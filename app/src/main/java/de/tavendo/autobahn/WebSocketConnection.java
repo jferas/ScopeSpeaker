@@ -177,6 +177,7 @@ public class WebSocketConnection implements WebSocket {
 	public void disconnect() {
 		if (mWebSocketWriter != null && mWebSocketWriter.isAlive()) {
 			mWebSocketWriter.forward(new WebSocketMessage.Close());
+            mWebSocketConnectionObserver = null;
 		} else {
 			Log.d(TAG, "Could not send WebSocket Close .. writer already null");
 		}
@@ -270,6 +271,19 @@ public class WebSocketConnection implements WebSocket {
 		return shouldReconnect;
 	}
 
+    /**
+     * Get a WebSocketConnectionObserver safely (in case it has been nulled)
+     *
+     */
+    private WebSocket.WebSocketConnectionObserver getWebSocketObserver() {
+        if (mWebSocketConnectionObserver == null) {
+            return null;
+        }
+        else {
+            return mWebSocketConnectionObserver.get();
+        }
+    }
+
 	/**
 	 * Common close handler
 	 *
@@ -283,7 +297,7 @@ public class WebSocketConnection implements WebSocket {
 			reconnecting = scheduleReconnect();
 		}
 
-		WebSocket.WebSocketConnectionObserver webSocketObserver = mWebSocketConnectionObserver.get();
+		WebSocket.WebSocketConnectionObserver webSocketObserver = getWebSocketObserver();
 		if (webSocketObserver != null) {
 			try {
 				if (reconnecting) {
@@ -343,7 +357,7 @@ public class WebSocketConnection implements WebSocket {
 	}
 
 	private void handleMessage(Message message) {
-		WebSocket.WebSocketConnectionObserver webSocketObserver = mWebSocketConnectionObserver.get();
+		WebSocket.WebSocketConnectionObserver webSocketObserver = getWebSocketObserver();
 
 		if (message.obj instanceof WebSocketMessage.TextMessage) {
 			WebSocketMessage.TextMessage textMessage = (WebSocketMessage.TextMessage) message.obj;
