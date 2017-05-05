@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -28,6 +30,7 @@ import de.tavendo.autobahn.WebSocketException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Timer;
 
 import android.content.ClipboardManager;
 import android.widget.Toast;
@@ -53,7 +56,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private State appState = null;
 
     // settings variables for room announcements
-    private Boolean saying_joined_messages = true;
+    private Boolean saying_joined_messages = false;
     private Boolean saying_left_messages = true;
 
     // settings variables for flow control
@@ -141,7 +144,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.15<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, "
+        setMessageView("ScopeSpeaker v0.16<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, "
                 + " and read the stream chat messages aloud.<br><br>"
         + "High and Low Water Marks control when messages will stop being said (when the queue is deeper than High Water Mark)"
         + "and when they will resume being said (when the queue gets as small as Low Water Mark<br><br>"
@@ -212,6 +215,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             editor.putInt("lowWaterMark", lowWaterMark);
             editor.putInt("afterMsgDelay", afterMsgDelay);
             editor.putString("streamLocator", userName);
+            editor.putBoolean("sayJoinedMessages", saying_joined_messages);
+            editor.putBoolean("sayLeftMessages", saying_left_messages);
             editor.apply();
         }
         catch (NumberFormatException e) {
@@ -226,11 +231,27 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         lowWaterMark = settings.getInt("lowWaterMark", 5);
         afterMsgDelay = settings.getInt("afterMsgDelay", 0);
         userName = settings.getString("streamLocator", "Broadcaster Name");
+        saying_joined_messages = settings.getBoolean("sayJoinedMessages", false);
+        saying_left_messages = settings.getBoolean("sayLeftMessages", true);
 
         highWaterMarkText.setText(Integer.toString(highWaterMark));
         lowWaterMarkText.setText(Integer.toString(lowWaterMark));
         afterMsgDelayText.setText(Integer.toString(afterMsgDelay));
         userNameText.setText(userName);
+
+        if (saying_joined_messages) {
+            joinMessagesButton.setText("Tap to Disable Join Messages");
+        }
+        else {
+            joinMessagesButton.setText("Tap to Enable Join Messages");
+        }
+
+        if (saying_left_messages) {
+            leftMessagesButton.setText("Tap to Disable Left Messages");
+        }
+        else {
+            leftMessagesButton.setText("Tap to Enable Left Messages");
+        }
     }
 
 
@@ -575,9 +596,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
         if (queue_size == highWaterMark) {
             // we've fallen behine and need to stop saying messages, put fall behind msg at the front of the queue so it is heard immediately
-            messages.add(0, "Scope Speaker has fallen behind by " + highWaterMark + "messages, chat messages won't be said till caught up");
-            appendToChatLog("Scope Speaker has fallen behind by " + highWaterMark + "messages, chat messages won't be said till caught up");
-            Toast.makeText(getApplicationContext(), "Scope Speaker has fallen behind by " + highWaterMark + "messages, chat messages won't be said till caught up",
+            String the_message = "Scope Speaker un-said queue has " + highWaterMark
+                    + " messages, new messages won't be said till queue is down to " + lowWaterMark;
+            messages.add(0, the_message);
+            appendToChatLog(the_message);
+            Toast.makeText(getApplicationContext(), the_message,
                     Toast.LENGTH_SHORT).show();
             droppingMessages = true;
         }
@@ -602,7 +625,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 // we're crossing back to the low water mark, allow saying new messages, announce we're doing so, and put msg back in queue
                 droppingMessages = false;
                 messages.add(0, speak_string);
-                speak_string = "Scope Speaker has recovered, new messages will resume being said";
+                speak_string = "Scope Speaker has recovered the un-said message queue down to " + lowWaterMark + ", new messages will resume being said";
                 appendToChatLog(speak_string);
                 Toast.makeText(getApplicationContext(), speak_string, Toast.LENGTH_SHORT).show();
             }
@@ -620,37 +643,17 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     //   otherwise the next message is kicked off.
     //  Note: speech object doesn't run on UI thread, but the chat logic does, so we have to use 'runOnUiThread' invocation
     public void speechComplete () {
-        speaking = false;
-        if (afterMsgDelay == 0) {
-            ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    queuedMessageBeingSaid = null;
-                    sayNext();
-                }
-            });
+        if (afterMsgDelay != 0) {
+            SystemClock.sleep(afterMsgDelay * 1000);
         }
-        else {
-            if (pause_handler != null) {
-                pause_handler.removeCallbacks(pause_runnable);
-                pause_handler = null;
+        ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                speaking = false;
+                queuedMessageBeingSaid = null;
+                sayNext();
             }
-            Toast.makeText(getApplicationContext(), "Pause to allow a response", Toast.LENGTH_SHORT).show();
-            pause_handler = new Handler();
-            pause_runnable = new Runnable() {
-                @Override
-                public void run() {
-                    ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            queuedMessageBeingSaid = null;
-                            sayNext();
-                        }
-                    });
-                }
-            };
-            pause_handler.postDelayed(pause_runnable, afterMsgDelay * 1000);
-        }
+        });
     }
 
 
