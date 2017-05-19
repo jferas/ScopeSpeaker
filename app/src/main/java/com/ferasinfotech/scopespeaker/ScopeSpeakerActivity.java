@@ -55,6 +55,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     private State appState = null;
 
+    private long  lastTimeBackWasPressed = 0;
+
     // settings variables for room announcements
     private Boolean saying_joined_messages = false;
     private Boolean saying_left_messages = true;
@@ -145,11 +147,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.18<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, "
-                + " and read the stream chat messages aloud.<br><br>"
+        setMessageView("ScopeSpeaker v0.18<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
+        + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
+        + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
+        + "while broadcasting.<br><br>"
+        + "<u>Preferences:</u><br>"
         + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
         + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
-        + "'Q Full' and 'Q Open' values control when messages will stop being said (when the queue is deeper than 'Q Full')"
+        + "'Q Full' and 'Q Open' values control when messages will stop being said (when the queue is deeper than 'Q Full') "
         + "and when they will resume being said (when the queue gets as small as 'Q Open'<br><br>"
         + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
 
@@ -189,6 +194,21 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             disconnect();
         }
     }
+
+    @Override
+    public void onBackPressed() {
+        if ( (lastTimeBackWasPressed + 5000L) > System.currentTimeMillis() ) {
+            super.onBackPressed();
+        }
+        else {
+            lastTimeBackWasPressed = System.currentTimeMillis();
+            Toast.makeText(getApplicationContext(),
+                    "Press 'Back' again to shutdown ScopeSpeaker, " +
+                    "or press the 'Home' button to run ScopeSpeaker in the background behind Periscope",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
 
     // create the text to speech manager
     private void createTextToSpeechManager() {
