@@ -26,25 +26,55 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp">
+
+        <Button
+            android:id="@+id/join_messages"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:onClick="toggleJoinMessages"
+            android:text="Disable Joins" />
+
+        <Button
+            android:id="@+id/save_chat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="saveChatToClipboard"
+            android:text="Copy"
+            android:layout_centerHorizontal="true" />
+
+        <Button
+            android:id="@+id/left_messages"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:onClick="toggleLeftMessages"
+            android:text="Disable Lefts" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="15dp"
         android:layout_marginTop="4dp" >
 
         <TextView
-            android:text="High Water Mark"
+            android:text="Q Full"
             android:layout_width="120dp"
             android:layout_height="wrap_content"
             android:textStyle="bold"
             android:layout_alignParentLeft="true" />
 
         <TextView
-            android:text="Low Water Mark"
+            android:text="Q Open"
             android:layout_width="120dp"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:textStyle="bold" />
 
         <TextView
-            android:text="Pause (seconds)"
+            android:text="Pause (secs)"
             android:layout_width="120dp"
             android:layout_height="wrap_content"
             android:textStyle="bold"
@@ -80,7 +110,7 @@
 
     <LinearLayout android:background="@drawable/border"
         android:layout_width="match_parent"
-        android:layout_height="230dp"
+        android:layout_height="340dp"
         android:padding="2dp">
 
         <WebView android:id="@+id/messageView"
@@ -89,27 +119,5 @@
             android:textColor="#000000"
             android:focusable="false" />
     </LinearLayout>
-
-    <Button
-        android:id="@+id/join_messages"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="toggleJoinMessages"
-        android:text="Tap to Disable Join Messages" />
-
-    <Button
-        android:id="@+id/left_messages"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="toggleLeftMessages"
-        android:text="Tap to Disable Left Messages" />
-
-    <Button
-        android:id="@+id/save_chat"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="saveChatToClipboard"
-        android:text="Save Chat to Clipboard" />
-
 
 </LinearLayout>

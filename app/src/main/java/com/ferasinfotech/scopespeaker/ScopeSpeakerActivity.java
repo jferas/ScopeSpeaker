@@ -59,7 +59,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private Boolean saying_joined_messages = false;
     private Boolean saying_left_messages = true;
 
-    // settings variables for flow control
+    // settings variables for flow control (high/low water mark in the code 'Q Full' and 'Q Open' on the display)
+
     private int     highWaterMark = 10;
     private int     lowWaterMark = 5;
     private int     afterMsgDelay = 5;
@@ -144,11 +145,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.16<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, "
+        setMessageView("ScopeSpeaker v0.18<br><br>Enter Periscope username and ScopeSpeaker will find their live stream, "
                 + " and read the stream chat messages aloud.<br><br>"
-        + "High and Low Water Marks control when messages will stop being said (when the queue is deeper than High Water Mark)"
-        + "and when they will resume being said (when the queue gets as small as Low Water Mark<br><br>"
-        + "Pause refers to the delay after any message so the broadcaster can say something uninterrupted");
+        + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
+        + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
+        + "'Q Full' and 'Q Open' values control when messages will stop being said (when the queue is deeper than 'Q Full')"
+        + "and when they will resume being said (when the queue gets as small as 'Q Open'<br><br>"
+        + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
 
         // keep keyboard from popping up at ap startup
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
@@ -240,17 +243,17 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userNameText.setText(userName);
 
         if (saying_joined_messages) {
-            joinMessagesButton.setText("Tap to Disable Join Messages");
+            joinMessagesButton.setText("Disable Joins");
         }
         else {
-            joinMessagesButton.setText("Tap to Enable Join Messages");
+            joinMessagesButton.setText("Enable Joins");
         }
 
         if (saying_left_messages) {
-            leftMessagesButton.setText("Tap to Disable Left Messages");
+            leftMessagesButton.setText("Disable Lefts");
         }
         else {
-            leftMessagesButton.setText("Tap to Enable Left Messages");
+            leftMessagesButton.setText("Enable Lefts");
         }
     }
 
@@ -281,11 +284,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     public void toggleJoinMessages(View v) {
         if (saying_joined_messages) {
             saying_joined_messages = false;
-            joinMessagesButton.setText("Tap to Enable Join Messages");
+            joinMessagesButton.setText("Enable Joins");
         }
         else {
             saying_joined_messages = true;
-            joinMessagesButton.setText("Tap to Disable Join Messages");
+            joinMessagesButton.setText("Disable Joins");
         }
     }
 
@@ -293,11 +296,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     public void toggleLeftMessages(View v) {
         if (saying_left_messages) {
             saying_left_messages = false;
-            leftMessagesButton.setText("Tap to Enable Left Messages");
+            leftMessagesButton.setText("Enable Lefts");
         }
         else {
             saying_left_messages = true;
-            leftMessagesButton.setText("Tap to Disable Left Messages");
+            leftMessagesButton.setText("Disable Lefts");
         }
     }
 
