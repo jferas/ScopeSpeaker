@@ -147,7 +147,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.18<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
+        setMessageView("ScopeSpeaker v0.19<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
         + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
         + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
         + "while broadcasting.<br><br>"
@@ -302,26 +302,36 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // toggle whether join messages are said or not
     public void toggleJoinMessages(View v) {
+        String messageToSay;
+
         if (saying_joined_messages) {
             saying_joined_messages = false;
             joinMessagesButton.setText("Enable Joins");
+            messageToSay = "Join messages have been disabled";
         }
         else {
             saying_joined_messages = true;
             joinMessagesButton.setText("Disable Joins");
+            messageToSay = "Join messages have been enabled";
         }
+        queueMessageToSay(messageToSay);
     }
 
     // toggle whether left messages are said or not
     public void toggleLeftMessages(View v) {
+        String messageToSay;
+
         if (saying_left_messages) {
             saying_left_messages = false;
             leftMessagesButton.setText("Enable Lefts");
+            messageToSay = "Left messages have been disabled";
         }
         else {
             saying_left_messages = true;
             leftMessagesButton.setText("Disable Lefts");
+            messageToSay = "Left messages have been enabled";
         }
+        queueMessageToSay(messageToSay);
     }
 
     // save the current chat to the Android clipboard
@@ -554,12 +564,20 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                         what_they_said = "joined";
                         //Log.i(TAG, "got an encoded join message:" + chatString);
                     }
+                    else {
+                        String message_for_chatlog = sender.getString("display_name") + " joined";
+                        appendToChatLog(message_for_chatlog);
+                    }
                 }
                 else if (payloadKind == 2) {
                     if (saying_left_messages) {
                         who_said_it = sender.getString("display_name");
                         what_they_said = "left";
                         //Log.i(TAG, "got an encoded left message:" + chatString);
+                    }
+                    else {
+                        String message_for_chatlog = sender.getString("display_name") + " left";
+                        appendToChatLog(message_for_chatlog);
                     }
                 }
             }
