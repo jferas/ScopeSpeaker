@@ -53,9 +53,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private enum State {AWAITING_USER_REQUEST, AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
                         AWAITING_WEBSOCKET_CONNECTION, AWAITING_CHAT_MESSAGES};
 
-    private State appState = null;
+    private State appState = State.AWAITING_USER_REQUEST;
 
     private long  lastTimeBackWasPressed = 0;
+
+    private Boolean displaying_messages = true;
 
     // settings variables for room announcements
     private Boolean saying_joined_messages = false;
@@ -79,7 +81,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private WebView      messageView = null;
     private TTSManager   ttsManager = null;
 
+    private Button       chatActionButton = null;
     private Button       joinMessagesButton = null;
+    private Button       textDisplayButton = null;
     private Button       leftMessagesButton = null;
 
     private WebQueryTask userQueryTask = null;
@@ -144,17 +148,20 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
+        chatActionButton = (Button) findViewById(R.id.chat_action);
+        textDisplayButton = (Button) findViewById(R.id.toggle_text_display);
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.19<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
+        setMessageView("ScopeSpeaker v0.20<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
         + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
         + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
         + "while broadcasting.<br><br>"
         + "<u>Preferences:</u><br>"
-        + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
         + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
-        + "'Q Full' and 'Q Open' values control when messages will stop being said (when the queue is deeper than 'Q Full') "
+        + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
+        + "The 'Disable Text' button will disable chat message text display (some jurisdictions fine for text on screen)<br><br>"
+        + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Q Full') "
         + "and when they will resume being said (when the queue gets as small as 'Q Open'<br><br>"
         + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
 
@@ -180,19 +187,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     @Override
     public void onDestroy() {
         super.onDestroy();
-        saveSettings();
-        destroyTextToSpeechManager();
-        if (handler != null) {
-            handler.removeCallbacks(the_runnable);
-            handler = null;
-        }
-        if (pause_handler != null) {
-            pause_handler.removeCallbacks(pause_runnable);
-            pause_handler = null;
-        }
-        if ( (mConnection != null) && (mConnection.isConnected()) ) {
-            disconnect();
-        }
+        stopChatProcessing(false);
     }
 
     @Override
@@ -343,8 +338,55 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Toast.makeText(getApplicationContext(), "Chat messages saved to clipboard", Toast.LENGTH_SHORT).show();
     }
 
+    // toggle wheter any messages are displayed in the text window
+    public void toggleTextDisplay(View v) {
+        if (displaying_messages) {
+            displaying_messages = false;
+            setMessageView("");
+            textDisplayButton.setText("Enable Text");
+        }
+        else {
+            displaying_messages = true;
+            setMessageView("Message display enabled");
+            textDisplayButton.setText("Disable Text");
+        }
+    }
+
+    // start or stop chat message processing in response to button press
+    public void chatAction(View v) {
+        if (appState != State.AWAITING_USER_REQUEST) {
+            chatActionButton.setText("Say Periscope Messages of");
+            stopChatProcessing(true);
+        }
+        else {
+            chatActionButton.setText("Stop Saying Messages");
+            startChatProcessing();
+        }
+    }
+
+    // stop the chat message processing
+    private void stopChatProcessing(Boolean makeAnnouncement) {
+        saveSettings();
+        if (handler != null) {
+            handler.removeCallbacks(the_runnable);
+            handler = null;
+        }
+        if (pause_handler != null) {
+            pause_handler.removeCallbacks(pause_runnable);
+            pause_handler = null;
+        }
+        if ( (mConnection != null) && (mConnection.isConnected()) ) {
+            disconnect();
+        }
+        if (makeAnnouncement) {
+            messages.clear();
+            queueMessageToSay("Chat messages stopped");
+        }
+        appState = State.AWAITING_USER_REQUEST;
+    }
+
     // start the process of getting the chat messages for the specified user's live broadcast
-    public void processChatMessages(View v) {
+    private void startChatProcessing() {
         int high_water_mark_orig = highWaterMark;
         int low_water_mark_orig = lowWaterMark;
         int after_msg_delay_orig = afterMsgDelay;
@@ -701,8 +743,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // put the desired message up on the display
     private void setMessageView(String s) {
         String html_page_string;
-        html_page_string = "<html><body>"
-                + "<h2><p align=\"justify\">" + s + "</p> " + "</h2></body></html>";
+        if (displaying_messages) {
+            html_page_string = "<html><body>"
+                    + "<h2><p align=\"justify\">" + s + "</p> " + "</h2></body></html>";
+        }
+        else {
+            html_page_string = "<html><html>";
+        }
         messageView.loadData(html_page_string, "text/html; charset=utf-8", "UTF-8");
     }
 

@@ -9,13 +9,27 @@
     tools:context="com.ferasinfotech.scopespeaker.ScopeSpeakerActivity"
     tools:showIn="@layout/activity_scope_speaker">
 
-    <Button
-        android:id="@+id/start"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="processChatMessages"
-        android:text="Say Messages From Periscopes of"
-        android:layout_alignParentLeft="true" />
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp">
+
+        <Button
+            android:id="@+id/chat_action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="chatAction"
+            android:text="Say Periscope Messages of"
+            android:layout_alignParentLeft="true" />
+
+        <Button
+            android:id="@+id/save_chat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:onClick="saveChatToClipboard"
+            android:text="Copy" />
+    </RelativeLayout>
 
     <EditText
         android:id="@+id/username"
@@ -38,11 +52,11 @@
             android:text="Disable Joins" />
 
         <Button
-            android:id="@+id/save_chat"
+            android:id="@+id/toggle_text_display"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="saveChatToClipboard"
-            android:text="Copy"
+            android:onClick="toggleTextDisplay"
+            android:text="Disable Text"
             android:layout_centerHorizontal="true" />
 
         <Button
@@ -60,14 +74,14 @@
         android:layout_marginTop="4dp" >
 
         <TextView
-            android:text="Q Full"
+            android:text="Queue Full"
             android:layout_width="120dp"
             android:layout_height="wrap_content"
             android:textStyle="bold"
             android:layout_alignParentLeft="true" />
 
         <TextView
-            android:text="Q Open"
+            android:text="Queue Open"
             android:layout_width="120dp"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
@@ -117,7 +131,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:textColor="#000000"
-            android:focusable="false" />
+            android:focusable="false"/>
     </LinearLayout>
 
 </LinearLayout>
