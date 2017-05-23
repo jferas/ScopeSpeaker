@@ -153,7 +153,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.20<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
+        setMessageView("ScopeSpeaker v0.21<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
         + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
         + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
         + "while broadcasting.<br><br>"
@@ -187,6 +187,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     @Override
     public void onDestroy() {
         super.onDestroy();
+        destroyTextToSpeechManager();
         stopChatProcessing(false);
     }
 
@@ -586,7 +587,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     what_they_said = outerBody.getString("body");
                     String senderString = payload.getString("sender");
                     JSONObject sender = new JSONObject(senderString);
-                    who_said_it = sender.getString("display_name");
+                    who_said_it = sender.getString("username");
                     if (what_they_said.equals("joined")) {
                         //Log.i(TAG, "got a textual join message:" + chatString);
                         return null;
@@ -602,23 +603,23 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 JSONObject sender = new JSONObject(senderString);
                 if (payloadKind == 1) {
                     if (saying_joined_messages) {
-                        who_said_it = sender.getString("display_name");
+                        who_said_it = sender.getString("username");
                         what_they_said = "joined";
                         //Log.i(TAG, "got an encoded join message:" + chatString);
                     }
                     else {
-                        String message_for_chatlog = sender.getString("display_name") + " joined";
+                        String message_for_chatlog = sender.getString("username") + " joined";
                         appendToChatLog(message_for_chatlog);
                     }
                 }
                 else if (payloadKind == 2) {
                     if (saying_left_messages) {
-                        who_said_it = sender.getString("display_name");
+                        who_said_it = sender.getString("username");
                         what_they_said = "left";
                         //Log.i(TAG, "got an encoded left message:" + chatString);
                     }
                     else {
-                        String message_for_chatlog = sender.getString("display_name") + " left";
+                        String message_for_chatlog = sender.getString("username") + " left";
                         appendToChatLog(message_for_chatlog);
                     }
                 }
