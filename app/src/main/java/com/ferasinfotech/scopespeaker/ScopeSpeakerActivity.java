@@ -153,19 +153,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.22<br><br>"
-        + "This is software under development and may have defects.. no warranty is expressed or implied.<br><br>"
-        + "Enter your Periscope username and ScopeSpeaker will find your current "
-        + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
-        + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
-        + "while broadcasting.<br><br>"
-        + "<u>Preferences:</u><br>"
-        + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
-        + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
-        + "The 'Disable Text' button will disable chat message text display (some jurisdictions fine for text on screen)<br><br>"
-        + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Q Full') "
-        + "and when they will resume being said (when the queue gets as small as 'Q Open'<br><br>"
-        + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
+        displayHelp();
+
 
         // keep keyboard from popping up at ap startup
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
@@ -180,9 +169,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         String result = extractChatMessage(response);
         setMessageView(result);
         *********/
-
-
-
     }
 
     // app shutdown - destroy allocated objects
@@ -207,7 +193,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
     }
 
-
     // create the text to speech manager
     private void createTextToSpeechManager() {
         ttsManager = new TTSManager();
@@ -220,6 +205,23 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             ttsManager.shutDown();
             ttsManager = null;
         }
+    }
+
+    // display help text
+    private void displayHelp() {
+        setMessageView("ScopeSpeaker v0.22<br><br>"
+                + "This is software under development and may have defects.. no warranty is expressed or implied.<br><br>"
+                + "Enter your Periscope username and ScopeSpeaker will find your current "
+                + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
+                + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
+                + "while broadcasting.<br><br>"
+                + "<u>Preferences:</u><br>"
+                + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
+                + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
+                + "The 'Disable Text' button will disable chat message text display (some jurisdictions fine for text on screen)<br><br>"
+                + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Q Full') "
+                + "and when they will resume being said (when the queue gets as small as 'Q Open'<br><br>"
+                + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
     }
 
     // update permanent storage with settings
@@ -291,7 +293,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.help_menu_item) {
+            displayHelp();
             return true;
         }
         return super.onOptionsItemSelected(item);
