@@ -153,7 +153,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesButton = (Button) findViewById(R.id.join_messages);
         leftMessagesButton = (Button) findViewById(R.id.left_messages);
 
-        setMessageView("ScopeSpeaker v0.21<br><br>Enter your Periscope username and ScopeSpeaker will find your current "
+        setMessageView("ScopeSpeaker v0.22<br><br>"
+        + "This is software under development and may have defects.. no warranty is expressed or implied.<br><br>"
+        + "Enter your Periscope username and ScopeSpeaker will find your current "
         + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
         + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
         + "while broadcasting.<br><br>"
