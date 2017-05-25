@@ -219,8 +219,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
                 + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
                 + "The 'Disable Text' button will disable chat message text display (some jurisdictions fine for text on screen)<br><br>"
-                + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Q Full') "
-                + "and when they will resume being said (when the queue gets as small as 'Q Open'<br><br>"
+                + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full') "
+                + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
     }
 
