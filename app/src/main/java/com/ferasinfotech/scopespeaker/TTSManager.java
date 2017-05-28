@@ -9,13 +9,17 @@ import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.speech.tts.Voice;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Set;
 
@@ -30,14 +34,8 @@ public class TTSManager {
     private ScopeSpeakerActivity scopeSpeakerActivity = null;
     private Context the_context = null;
     private Bundle params = null;
-    private Set<Locale> mLocales = null;
-    private String mEngineName = null;
-    private Locale mDefaultLanguage = null;
-    private Voice mDefaultVoice = null;
-    private List<TextToSpeech.EngineInfo> mEngines = null;
-    private Locale mLanguage = null;
-    private Voice mVoice = null;
     private Set<Voice> mVoices = null;
+    private Set<Voice> matchedVoices = null;
 
     public void init(Context context, ScopeSpeakerActivity ssa) {
         try {
@@ -58,27 +56,8 @@ public class TTSManager {
                 int result = mTts.setLanguage(Locale.US);
                 isLoaded = true;
 
-                mLocales = mTts.getAvailableLanguages();
-                mEngineName = mTts.getDefaultEngine();
-                mDefaultLanguage = mTts.getDefaultVoice().getLocale();
-                mDefaultVoice = mTts.getDefaultVoice();
-                mEngines = mTts.getEngines();
-                mLanguage = mTts.getVoice().getLocale();
-                mVoice = mTts.getVoice();
                 mVoices = mTts.getVoices();
-
-                Log.e("tts", "Available languages: " + mLocales);
-                Log.e("tts", "Default engine: " + mEngineName);
-                Log.e("tts", "Default language: " + mDefaultLanguage);
-                Log.e("tts", "Default voice: " + mVoice);
-                Log.e("tts", "Available engines: " + mEngines);
-                Log.e("tts", "Current language: " + mLanguage);
-                Log.e("tts", "Current voice: " + mVoice);
-                Log.e("tts", "Available voices: " + mVoices);
-
-                Set<Voice> englishVoices = getAvailableVoicesForLanguage("en");
-
-
+                List<String> englishVoices = getAvailableVoicesForLanguage("en");
 
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                     Log.e("tts", "This Language is not supported");
@@ -138,22 +117,19 @@ public class TTSManager {
         }
     }
 
-    public Set<Voice> getAvailableVoicesForLanguage(String language) {
-        Set<Voice> theVoices = new HashSet<Voice>();
-        Iterator<Voice> iterator = mVoices.iterator();
-        while (iterator.hasNext()) {
-            Voice theVoice = iterator.next();
+    public List<String> getAvailableVoicesForLanguage(String language) {
+        matchedVoices = new HashSet<Voice>();
+        List<String>matchedNames = new ArrayList<String>();
+        for (Voice theVoice : mVoices) {
             if (theVoice.getName().indexOf(language + "-") == 0) {
                 Boolean isInstalled = !theVoice.getFeatures().contains("notInstalled");
                 if (isInstalled) {
-                    theVoices.add(theVoice);
-                    if (theVoice.getName().equals("en-us-x-sfg#female_3-local")) {
-                        mTts.setVoice(theVoice);
-                    }
+                    matchedVoices.add(theVoice);
+                    matchedNames.add(theVoice.getName());
                 }
             }
 
         }
-        return theVoices;
+        return matchedNames;
     }
 }
