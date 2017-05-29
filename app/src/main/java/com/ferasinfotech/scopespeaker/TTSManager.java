@@ -36,6 +36,7 @@ public class TTSManager {
     private Bundle params = null;
     private Set<Voice> mVoices = null;
     private Set<Voice> matchedVoices = null;
+    private String defaultLanguage = null;
 
     public void init(Context context, ScopeSpeakerActivity ssa) {
         try {
@@ -56,8 +57,11 @@ public class TTSManager {
                 int result = mTts.setLanguage(Locale.US);
                 isLoaded = true;
 
+                Locale theLocale = mTts.getDefaultVoice().getLocale();
+                defaultLanguage = theLocale.getDisplayLanguage().substring(0,2).toLowerCase();
+                Log.e("tts", "The default language is:" + defaultLanguage);
+
                 mVoices = mTts.getVoices();
-                List<String> englishVoices = getAvailableVoicesForLanguage("en");
 
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                     Log.e("tts", "This Language is not supported");
@@ -117,11 +121,12 @@ public class TTSManager {
         }
     }
 
-    public List<String> getAvailableVoicesForLanguage(String language) {
+    public List<String> getAvailableVoicesForLanguage() {
         matchedVoices = new HashSet<Voice>();
         List<String>matchedNames = new ArrayList<String>();
+        matchedNames.add("Use all Voices");
         for (Voice theVoice : mVoices) {
-            if (theVoice.getName().indexOf(language + "-") == 0) {
+            if (theVoice.getName().indexOf(defaultLanguage + "-") == 0) {
                 Boolean isInstalled = !theVoice.getFeatures().contains("notInstalled");
                 if (isInstalled) {
                     matchedVoices.add(theVoice);
@@ -131,5 +136,17 @@ public class TTSManager {
 
         }
         return matchedNames;
+    }
+
+    public void setVoice(String new_voice) {
+        Boolean done = false;
+        Iterator<Voice> iterator = mVoices.iterator();
+        while ( (iterator.hasNext()) && !done) {
+            Voice thisVoice = iterator.next();
+            if (thisVoice.getName().equals(new_voice)) {
+                mTts.setVoice(thisVoice);
+                done = true;
+            }
+        }
     }
 }

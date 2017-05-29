@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">ScopeSpeaker</string>
     <string name="action_help">Help</string>
+    <string name="action_change_voice">Change Voice</string>
 </resources>

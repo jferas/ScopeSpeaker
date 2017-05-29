@@ -2,11 +2,13 @@ package com.ferasinfotech.scopespeaker;
 
 import android.content.ClipData;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -15,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
 import android.webkit.WebView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -130,6 +133,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // string to hold log of chat
     private String chatLog = "";
 
+    // Voice variables
+    List<String> availableVoices = null;
+    String       selectedVoice = null;
+    String       currentVoice = null;
 
     // settings variables
     private Integer     secondsToWait = 30;
@@ -297,6 +304,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             displayHelp();
             return true;
         }
+        else if (id == R.id.change_voice_menu_item) {
+            popupVoiceList();
+        }
+
         return super.onOptionsItemSelected(item);
 
     }
@@ -759,6 +770,41 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         messageView.loadData(html_page_string, "text/html; charset=utf-8", "UTF-8");
     }
 
+    // popup a choice list of possible voices to use
+    private void popupVoiceList() {
+        AlertDialog.Builder builderSingle = new AlertDialog.Builder(ScopeSpeakerActivity.this);
+        //builderSingle.setIcon(R.drawable.ic_launcher);
+        builderSingle.setTitle("Select Voice:");
+
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(ScopeSpeakerActivity.this,
+                android.R.layout.select_dialog_singlechoice);
+
+        availableVoices = ttsManager.getAvailableVoicesForLanguage();
+        arrayAdapter.addAll(availableVoices);
+
+        builderSingle.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        builderSingle.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                selectedVoice = arrayAdapter.getItem(which);
+                Log.e(TAG, "Selected:" + selectedVoice);
+                if (selectedVoice.equals("Use all Voices")) {
+                    Log.e(TAG, "We are using all the voices");
+                }
+                else {
+                    currentVoice = selectedVoice;
+                    ttsManager.setVoice(currentVoice);
+                }
+            }
+        });
+        builderSingle.show();
+    }
 
     private void establishWebSocket(String chatServerURL) {
         this.mConnection = new WebSocketConnection();
