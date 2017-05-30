@@ -135,7 +135,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // Voice variables
     List<String> availableVoices = null;
-    String       selectedVoice = null;
     String       currentVoice = null;
 
     // settings variables
@@ -182,8 +181,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     @Override
     public void onDestroy() {
         super.onDestroy();
-        destroyTextToSpeechManager();
         stopChatProcessing(false);
+        destroyTextToSpeechManager();
     }
 
     @Override
@@ -233,6 +232,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // update permanent storage with settings
     private void saveSettings() {
+        if (currentVoice == null) {
+            currentVoice = ttsManager.getCurrentVoice();
+        }
         SharedPreferences settings = getPreferences(0);
         SharedPreferences.Editor editor = settings.edit();
         try {
@@ -247,6 +249,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             editor.putString("streamLocator", userName);
             editor.putBoolean("sayJoinedMessages", saying_joined_messages);
             editor.putBoolean("sayLeftMessages", saying_left_messages);
+            editor.putString("currentVoice", currentVoice);
             editor.apply();
         }
         catch (NumberFormatException e) {
@@ -263,6 +266,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userName = settings.getString("streamLocator", "Broadcaster Name");
         saying_joined_messages = settings.getBoolean("sayJoinedMessages", false);
         saying_left_messages = settings.getBoolean("sayLeftMessages", true);
+        currentVoice = settings.getString("currentVoice", "unknown");
 
         highWaterMarkText.setText(Integer.toString(highWaterMark));
         lowWaterMarkText.setText(Integer.toString(lowWaterMark));
@@ -717,6 +721,19 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             return;
         }
 
+        // if there was not a setting for current voice (first run) use default from TTS manager
+        // Also.. since the ttsManager might not be initialized when settings are restored at start
+        // verify that the voice is set to that specified by settings just before we talk
+
+        String active_voice = ttsManager.getCurrentVoice();
+        if ( currentVoice.equals("unknown") ) {
+            currentVoice = active_voice;
+        }
+
+        if (!currentVoice.equals(active_voice)) {
+            ttsManager.setVoice(currentVoice);
+        }
+
         if (!messages.isEmpty()) {
             speaking = true;
             speak_string = messages.get(0);
@@ -774,7 +791,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private void popupVoiceList() {
         AlertDialog.Builder builderSingle = new AlertDialog.Builder(ScopeSpeakerActivity.this);
         //builderSingle.setIcon(R.drawable.ic_launcher);
-        builderSingle.setTitle("Select Voice:");
+        builderSingle.setTitle("Current Voice:" + currentVoice);
 
         final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(ScopeSpeakerActivity.this,
                 android.R.layout.select_dialog_singlechoice);
@@ -782,7 +799,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         availableVoices = ttsManager.getAvailableVoicesForLanguage();
         arrayAdapter.addAll(availableVoices);
 
-        builderSingle.setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+        builderSingle.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
@@ -792,15 +809,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         builderSingle.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                selectedVoice = arrayAdapter.getItem(which);
-                Log.e(TAG, "Selected:" + selectedVoice);
-                if (selectedVoice.equals("Use all Voices")) {
-                    Log.e(TAG, "We are using all the voices");
-                }
-                else {
-                    currentVoice = selectedVoice;
-                    ttsManager.setVoice(currentVoice);
-                }
+                currentVoice = arrayAdapter.getItem(which);
+                Log.e(TAG, "Selected:" + currentVoice);
+                ttsManager.setVoice(currentVoice);
+                dialog.dismiss();
             }
         });
         builderSingle.show();

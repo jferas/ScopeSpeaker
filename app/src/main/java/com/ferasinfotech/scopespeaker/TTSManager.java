@@ -124,7 +124,6 @@ public class TTSManager {
     public List<String> getAvailableVoicesForLanguage() {
         matchedVoices = new HashSet<Voice>();
         List<String>matchedNames = new ArrayList<String>();
-        matchedNames.add("Use all Voices");
         for (Voice theVoice : mVoices) {
             if (theVoice.getName().indexOf(defaultLanguage + "-") == 0) {
                 Boolean isInstalled = !theVoice.getFeatures().contains("notInstalled");
@@ -136,6 +135,10 @@ public class TTSManager {
 
         }
         return matchedNames;
+    }
+
+    public String getCurrentVoice() {
+        return mTts.getVoice().getName();
     }
 
     public void setVoice(String new_voice) {
