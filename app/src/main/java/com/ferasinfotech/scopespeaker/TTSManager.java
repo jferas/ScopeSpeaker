@@ -16,6 +16,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -54,14 +55,21 @@ public class TTSManager {
         @Override
         public void onInit(int status) {
             if (status == TextToSpeech.SUCCESS) {
+                Locale theLocale = null;
                 int result = mTts.setLanguage(Locale.US);
                 isLoaded = true;
 
-                Locale theLocale = mTts.getDefaultVoice().getLocale();
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                    theLocale = mTts.getDefaultVoice().getLocale();
+                } else{
+                    theLocale = mTts.getDefaultLanguage();
+                }
                 defaultLanguage = theLocale.getDisplayLanguage().substring(0,2).toLowerCase();
                 Log.e("tts", "The default language is:" + defaultLanguage);
 
-                mVoices = mTts.getVoices();
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                    mVoices = mTts.getVoices();
+                }
 
                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                     Log.e("tts", "This Language is not supported");
@@ -101,8 +109,16 @@ public class TTSManager {
     public Boolean isSpeaking() { return mTts.isSpeaking(); }
 
     public void addQueue(String text) {
-        if (isLoaded)
-            mTts.speak(text, TextToSpeech.QUEUE_ADD, params, "utteranceId");
+        if (isLoaded) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                mTts.speak(text, TextToSpeech.QUEUE_ADD, params, "utteranceId");
+            }
+            else {
+                HashMap<String, String> map = new HashMap<>();
+                map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
+                mTts.speak(text, TextToSpeech.QUEUE_ADD, map);
+            }
+        }
         else {
             Log.e("tts", "TTS Not Initialized");
             Log.e("tts", "Text to be said was:" + text);
@@ -111,9 +127,16 @@ public class TTSManager {
     }
 
     public void initQueue(String text) {
-
-        if (isLoaded)
-            mTts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "utteranceId");
+        if (isLoaded) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                mTts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "utteranceId");
+            }
+            else {
+                HashMap<String, String> map = new HashMap<>();
+                map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
+                mTts.speak(text, TextToSpeech.QUEUE_FLUSH, map);
+            }
+        }
         else {
             Log.e("tts", "TTS Not Initialized");
             Log.e("tts", "Text to be said was:" + text);
@@ -122,33 +145,45 @@ public class TTSManager {
     }
 
     public List<String> getAvailableVoicesForLanguage() {
-        matchedVoices = new HashSet<Voice>();
         List<String>matchedNames = new ArrayList<String>();
-        for (Voice theVoice : mVoices) {
-            if (theVoice.getName().indexOf(defaultLanguage + "-") == 0) {
-                Boolean isInstalled = !theVoice.getFeatures().contains("notInstalled");
-                if (isInstalled) {
-                    matchedVoices.add(theVoice);
-                    matchedNames.add(theVoice.getName());
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            matchedVoices = new HashSet<Voice>();
+            for (Voice theVoice : mVoices) {
+                if (theVoice.getName().indexOf(defaultLanguage + "-") == 0) {
+                    Boolean isInstalled = !theVoice.getFeatures().contains("notInstalled");
+                    if (isInstalled) {
+                        matchedVoices.add(theVoice);
+                        matchedNames.add(theVoice.getName());
+                    }
                 }
-            }
 
+            }
+        }
+        else {
+            matchedNames.add("Not supported in this Android version");
         }
         return matchedNames;
     }
 
     public String getCurrentVoice() {
-        return mTts.getVoice().getName();
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            return mTts.getVoice().getName();
+        }
+        else {
+            return "Default";
+        }
     }
 
     public void setVoice(String new_voice) {
-        Boolean done = false;
-        Iterator<Voice> iterator = mVoices.iterator();
-        while ( (iterator.hasNext()) && !done) {
-            Voice thisVoice = iterator.next();
-            if (thisVoice.getName().equals(new_voice)) {
-                mTts.setVoice(thisVoice);
-                done = true;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            Boolean done = false;
+            Iterator<Voice> iterator = mVoices.iterator();
+            while ((iterator.hasNext()) && !done) {
+                Voice thisVoice = iterator.next();
+                if (thisVoice.getName().equals(new_voice)) {
+                    mTts.setVoice(thisVoice);
+                    done = true;
+                }
             }
         }
     }
