@@ -148,6 +148,7 @@ public class TTSManager {
         List<String>matchedNames = new ArrayList<String>();
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             matchedVoices = new HashSet<Voice>();
+            matchedNames.add("Use All Voices");
             for (Voice theVoice : mVoices) {
                 if (theVoice.getName().indexOf(defaultLanguage + "-") == 0) {
                     Boolean isInstalled = !theVoice.getFeatures().contains("notInstalled");

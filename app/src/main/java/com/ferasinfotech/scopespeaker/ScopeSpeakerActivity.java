@@ -727,8 +727,20 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             currentVoice = active_voice;
         }
 
+        // if the selected voice is the first index (Use all voices) then switch to next voice in list
         if (!currentVoice.equals(active_voice)) {
-            ttsManager.setVoice(currentVoice);
+            String new_voice = currentVoice;
+            if (availableVoices != null) {
+                if (availableVoices.get(0).equals(currentVoice)) {
+                    Integer vi = availableVoices.indexOf(active_voice);
+                    vi++;
+                    if (vi >= availableVoices.size()) {
+                        vi = 1;
+                    }
+                    new_voice = availableVoices.get(vi);
+                }
+            }
+            ttsManager.setVoice(new_voice);
         }
 
         if (!messages.isEmpty()) {
@@ -808,7 +820,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             public void onClick(DialogInterface dialog, int which) {
                 currentVoice = arrayAdapter.getItem(which);
                 Log.e(TAG, "Selected:" + currentVoice);
-                ttsManager.setVoice(currentVoice);
                 dialog.dismiss();
             }
         });
