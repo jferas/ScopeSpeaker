@@ -215,7 +215,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // display help text
     private void displayHelp() {
-        setMessageView("ScopeSpeaker v0.28<br><br>"
+        setMessageView("ScopeSpeaker v0.29<br><br>"
                 + "This is software under development and may have defects.. no warranty is expressed or implied.<br><br>"
                 + "Enter your Periscope username and ScopeSpeaker will find your current "
                 + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
@@ -730,15 +730,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         // if the selected voice is the first index (Use all voices) then switch to next voice in list
         if (!currentVoice.equals(active_voice)) {
             String new_voice = currentVoice;
-            if (availableVoices != null) {
-                if (availableVoices.get(0).equals(currentVoice)) {
-                    Integer vi = availableVoices.indexOf(active_voice);
-                    vi++;
-                    if (vi >= availableVoices.size()) {
-                        vi = 1;
-                    }
-                    new_voice = availableVoices.get(vi);
+            if (availableVoices == null) {
+                availableVoices = ttsManager.getAvailableVoicesForLanguage();
+            }
+            if (availableVoices.get(0).equals(currentVoice)) {
+                Integer vi = availableVoices.indexOf(active_voice);
+                vi++;
+                if (vi >= availableVoices.size()) {
+                    vi = 1;
                 }
+                new_voice = availableVoices.get(vi);
             }
             ttsManager.setVoice(new_voice);
         }
