@@ -8,6 +8,11 @@
         android:title="@string/action_change_voice"
         app:showAsAction="never" />
     <item
+        android:id="@+id/settings_menu_item"
+        android:orderInCategory="100"
+        android:title="@string/action_settings"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/help_menu_item"
         android:orderInCategory="100"
         android:title="@string/action_help"
