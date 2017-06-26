@@ -6,7 +6,6 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.SystemClock;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -19,6 +18,8 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import org.json.JSONException;
@@ -33,7 +34,6 @@ import de.tavendo.autobahn.WebSocketException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Timer;
 
 import android.content.ClipboardManager;
 import android.widget.Toast;
@@ -85,9 +85,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private TTSManager   ttsManager = null;
 
     private Button       chatActionButton = null;
-    private Button       joinMessagesButton = null;
-    private Button       textDisplayButton = null;
-    private Button       leftMessagesButton = null;
+    private Switch       joinMessagesSwitch = null;
+    private Switch       textDisplaySwitch = null;
+    private Switch       leftMessagesSwitch = null;
 
     private WebQueryTask userQueryTask = null;
     private WebQueryTask infoQueryTask = null;
@@ -155,9 +155,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         setSupportActionBar(toolbar);
         messageView = (WebView) findViewById(R.id.messageView);
         chatActionButton = (Button) findViewById(R.id.chat_action);
-        textDisplayButton = (Button) findViewById(R.id.toggle_text_display);
-        joinMessagesButton = (Button) findViewById(R.id.join_messages);
-        leftMessagesButton = (Button) findViewById(R.id.left_messages);
+        textDisplaySwitch = (Switch) findViewById(R.id.toggle_text_display);
+        joinMessagesSwitch = (Switch) findViewById(R.id.join_messages);
+        leftMessagesSwitch = (Switch) findViewById(R.id.left_messages);
 
         displayHelp();
 
@@ -168,13 +168,56 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         // restore the settings
         restoreSettings();
 
-        /**** Some test code to allow JSON parsing to be tested from data in the clipboard
-        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData clip = clipboard.getPrimaryClip();
-        String response = clip.getItemAt(0).getText().toString();
-        String result = extractChatMessage(response);
-        setMessageView(result);
-        *********/
+        //attach a listener to check for changes in join messages state
+        joinMessagesSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                String messageToSay;
+                saying_joined_messages = isChecked;
+                if (isChecked) {
+                    messageToSay = "Join messages have been enabled";
+                }
+                else {
+                    messageToSay = "Join messages have been disabled";
+                }
+                queueMessageToSay(messageToSay);
+            }
+        });
+
+        //attach a listener to check for changes in left messages state
+        leftMessagesSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                String messageToSay;
+                saying_left_messages = isChecked;
+                if (isChecked) {
+                    messageToSay = "Left messages have been enabled";
+                }
+                else {
+                    messageToSay = "Left messages have been disabled";
+                }
+                queueMessageToSay(messageToSay);
+            }
+        });
+
+        //attach a listener to check for changes in left messages state
+        textDisplaySwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                String messageToSay;
+                displaying_messages = isChecked;
+                if (isChecked) {
+                    setMessageView("Text display enabled");
+                }
+                else {
+                    setMessageView("Text display display");
+                }
+            }
+        });
+
     }
 
     // app shutdown - destroy allocated objects
@@ -274,18 +317,20 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userNameText.setText(userName);
 
         if (saying_joined_messages) {
-            joinMessagesButton.setText("Disable Joins");
+            joinMessagesSwitch.setChecked(true);
         }
         else {
-            joinMessagesButton.setText("Enable Joins");
+            joinMessagesSwitch.setChecked(false);
         }
 
         if (saying_left_messages) {
-            leftMessagesButton.setText("Disable Lefts");
+            leftMessagesSwitch.setChecked(true);
         }
         else {
-            leftMessagesButton.setText("Enable Lefts");
+            leftMessagesSwitch.setChecked(false);
         }
+        textDisplaySwitch.setChecked(true);
+        displaying_messages = true;
     }
 
 
@@ -313,40 +358,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         return super.onOptionsItemSelected(item);
     }
 
-    // toggle whether join messages are said or not
-    public void toggleJoinMessages(View v) {
-        String messageToSay;
-
-        if (saying_joined_messages) {
-            saying_joined_messages = false;
-            joinMessagesButton.setText("Enable Joins");
-            messageToSay = "Join messages have been disabled";
-        }
-        else {
-            saying_joined_messages = true;
-            joinMessagesButton.setText("Disable Joins");
-            messageToSay = "Join messages have been enabled";
-        }
-        queueMessageToSay(messageToSay);
-    }
-
-    // toggle whether left messages are said or not
-    public void toggleLeftMessages(View v) {
-        String messageToSay;
-
-        if (saying_left_messages) {
-            saying_left_messages = false;
-            leftMessagesButton.setText("Enable Lefts");
-            messageToSay = "Left messages have been disabled";
-        }
-        else {
-            saying_left_messages = true;
-            leftMessagesButton.setText("Disable Lefts");
-            messageToSay = "Left messages have been enabled";
-        }
-        queueMessageToSay(messageToSay);
-    }
-
     // save the current chat to the Android clipboard
     public void saveChatToClipboard(View v) {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -354,20 +365,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         clipboard.setPrimaryClip(clip);
         chatLog = "";
         Toast.makeText(getApplicationContext(), "Chat messages saved to clipboard", Toast.LENGTH_SHORT).show();
-    }
-
-    // toggle wheter any messages are displayed in the text window
-    public void toggleTextDisplay(View v) {
-        if (displaying_messages) {
-            displaying_messages = false;
-            setMessageView("");
-            textDisplayButton.setText("Enable Text");
-        }
-        else {
-            displaying_messages = true;
-            setMessageView("Message display enabled");
-            textDisplayButton.setText("Disable Text");
-        }
     }
 
     // start or stop chat message processing in response to button press
