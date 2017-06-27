@@ -81,6 +81,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // state variable indicating whether speech is in progress or not
     private Boolean      speaking = false;
 
+    // state variable indicating if settings view is up on the display or not
+    private Boolean      settingsViewIsUp = false;
+
+    // View objects for main view and settings view
+    private View         mainView = null;
+    private View         settingsView = null;
+
+
     private WebView      messageView = null;
     private TTSManager   ttsManager = null;
 
@@ -146,6 +154,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
         createTextToSpeechManager();
         setContentView(R.layout.activity_scope_speaker);
+        mainView = (View) findViewById(R.id.main_display);
+        settingsView = (View) findViewById(R.id.settings_display);
         userNameText = (TextView) findViewById(R.id.username);
         highWaterMarkText = (TextView) findViewById(R.id.high_water_mark);
         lowWaterMarkText = (TextView) findViewById(R.id.low_water_mark);
@@ -158,6 +168,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         textDisplaySwitch = (Switch) findViewById(R.id.toggle_text_display);
         joinMessagesSwitch = (Switch) findViewById(R.id.join_messages);
         leftMessagesSwitch = (Switch) findViewById(R.id.left_messages);
+
+        mainView.setVisibility(View.VISIBLE);
+        settingsView.setVisibility(View.GONE);
 
         displayHelp();
 
@@ -230,7 +243,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     @Override
     public void onBackPressed() {
-        if ( (lastTimeBackWasPressed + 5000L) > System.currentTimeMillis() ) {
+        if (settingsViewIsUp) {
+            mainView.setVisibility(View.VISIBLE);
+            settingsView.setVisibility(View.GONE);
+            settingsViewIsUp = false;
+        }
+        else if ( (lastTimeBackWasPressed + 5000L) > System.currentTimeMillis() ) {
             super.onBackPressed();
         }
         else {
@@ -258,16 +276,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // display help text
     private void displayHelp() {
-        setMessageView("ScopeSpeaker v0.32<br><br>"
-                + "This is software under development and may have defects.. no warranty is expressed or implied.<br><br>"
+        setMessageView("ScopeSpeaker v0.33<br><br>"
                 + "Enter your Periscope username and ScopeSpeaker will find your current "
                 + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
-                + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences (see below) "
+                + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences or settings (see below) "
                 + "while broadcasting.<br><br>"
-                + "<u>Preferences:</u><br>"
                 + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
-                + "Tap the buttons to enable or disable the announcements of users joining or leaving the chats.<br><br>"
-                + "The 'Disable Text' button will disable chat message text display (some jurisdictions fine for text on screen)<br><br>"
+                + "<u>Preferences:</u><br><br>"
+                + "Slide the switches to enable or disable the announcements of users joining or leaving the chats.<br><br>"
+                + "The 'Text Display' button will disable chat message text display (some jurisdictions fine for text on screen)<br><br>"
+                + "<u>Settings:</u><br><br>"
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full') "
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
@@ -354,6 +372,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
         else if (id == R.id.change_voice_menu_item) {
             popupVoiceList();
+        }
+        else if (id == R.id.settings_menu_item) {
+            mainView.setVisibility(View.GONE);
+            settingsView.setVisibility(View.VISIBLE);
+            settingsViewIsUp = true;
         }
         return super.onOptionsItemSelected(item);
     }
