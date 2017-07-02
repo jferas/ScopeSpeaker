@@ -131,137 +131,146 @@
             android:layout_marginTop="15dp"
             android:textSize="30sp"
             android:textStyle="bold" />
-
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_marginBottom="20dp"
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-            <RelativeLayout
+            <LinearLayout
+                android:orientation="vertical"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" >
-                <TextView
-                    android:text="Queue Full:"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_marginBottom="20dp"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="75dp"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:layout_height="wrap_content">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" >
+                        <TextView
+                            android:text="Queue Full:"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="75dp"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/high_water_mark"
+                        <TextView
+                            android:id="@+id/high_water_mark"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="200dp"
+                            android:textColor="#0000FF"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
+
+                    <TextView
+                        android:text="The number of messages at which the speech queue is full and messages are dropped"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <SeekBar
+                        android:id="@+id/high_water_mark_seekbar"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="300dp"
+                        android:layout_height="wrap_content"
+                        android:max="100"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_marginBottom="20dp"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="200dp"
-                    android:textColor="#0000FF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </RelativeLayout>
+                    android:layout_height="wrap_content">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" >
+                        <TextView
+                            android:text="Queue Open:"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="75dp"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
 
-            <TextView
-                android:text="The number of messages at which the speech queue is full and messages are dropped"
-                android:layout_marginLeft="30dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/low_water_mark"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="200dp"
+                            android:textColor="#0000FF"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
 
-            <SeekBar
-                android:id="@+id/high_water_mark_seekbar"
-                android:layout_marginLeft="30dp"
-                android:layout_width="300dp"
-                android:layout_height="wrap_content"
-                android:max="100"/>
-        </LinearLayout>
+                    <TextView
+                        android:text="The number of messages at which the speech queue resumes accepting messages"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_marginBottom="20dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" >
-                <TextView
-                    android:text="Queue Open:"
+                    <SeekBar
+                        android:id="@+id/low_water_mark_seekbar"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="300dp"
+                        android:layout_height="wrap_content"
+                        android:max="50"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_marginBottom="20dp"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="75dp"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:layout_height="wrap_content">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" >
+                        <TextView
+                            android:text="Pause:"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="75dp"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/low_water_mark"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="200dp"
-                    android:textColor="#0000FF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </RelativeLayout>
+                        <TextView
+                            android:id="@+id/after_msg_pause"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="200dp"
+                            android:textColor="#0000FF"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
 
-            <TextView
-                android:text="The number of messages at which the speech queue resumes accepting messages"
-                android:layout_marginLeft="30dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                    <TextView
+                        android:text="Time delay (in seconds) after a message is said\n(gives the broadcaster time to speak without being interrupted)"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
-            <SeekBar
-                android:id="@+id/low_water_mark_seekbar"
-                android:layout_marginLeft="30dp"
-                android:layout_width="300dp"
-                android:layout_height="wrap_content"
-                android:max="50"/>
+                    <SeekBar
+                        android:id="@+id/after_msg_pause_seekbar"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="300dp"
+                        android:layout_height="wrap_content"
+                        android:max="30"/>
 
-        </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
 
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_marginBottom="20dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" >
-                <TextView
-                    android:text="Pause:"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="75dp"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/after_msg_pause"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="200dp"
-                    android:textColor="#0000FF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </RelativeLayout>
-
-            <TextView
-                android:text="Time delay (in seconds) after a message is said\n(gives the broadcaster time to speak without being interrupted)"
-                android:layout_marginLeft="30dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <SeekBar
-                android:id="@+id/after_msg_pause_seekbar"
-                android:layout_marginLeft="30dp"
-                android:layout_width="300dp"
-                android:layout_height="wrap_content"
-                android:max="30"/>
-
-        </LinearLayout>
 
     </LinearLayout>
 

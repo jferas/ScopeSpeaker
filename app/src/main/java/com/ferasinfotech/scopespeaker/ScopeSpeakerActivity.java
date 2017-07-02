@@ -338,7 +338,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // display help text
     private void displayHelp() {
-        setMessageView("ScopeSpeaker v0.33<br><br>"
+        settingsView.setVisibility(View.GONE);
+        mainView.setVisibility(View.VISIBLE);
+        setMessageView("ScopeSpeaker v0.34<br><br>"
                 + "Enter your Periscope username and ScopeSpeaker will find your current "
                 + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
                 + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences or settings (see below) "
