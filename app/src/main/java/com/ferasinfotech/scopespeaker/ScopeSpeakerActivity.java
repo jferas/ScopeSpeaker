@@ -21,6 +21,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.SeekBar;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -73,7 +74,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private int     afterMsgDelay = 5;
     private Boolean droppingMessages = false;
 
-    // text widgets for input parameters
+    // SeekBar widgets for input parameters
+    private SeekBar highWaterMarkSeekBar = null;
+    private SeekBar lowWaterMarkSeekBar = null;
+    private SeekBar afterMsgDelaySeekBar = null;
+
+    // Text widgets to hold seekbar values
     private TextView highWaterMarkText = null;
     private TextView lowWaterMarkText = null;
     private TextView afterMsgDelayText = null;
@@ -157,9 +163,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         mainView = (View) findViewById(R.id.main_display);
         settingsView = (View) findViewById(R.id.settings_display);
         userNameText = (TextView) findViewById(R.id.username);
+
         highWaterMarkText = (TextView) findViewById(R.id.high_water_mark);
         lowWaterMarkText = (TextView) findViewById(R.id.low_water_mark);
         afterMsgDelayText = (TextView) findViewById(R.id.after_msg_pause);
+
+        highWaterMarkSeekBar = (SeekBar) findViewById(R.id.high_water_mark_seekbar);
+        lowWaterMarkSeekBar = (SeekBar) findViewById(R.id.low_water_mark_seekbar);
+        afterMsgDelaySeekBar = (SeekBar) findViewById(R.id.after_msg_pause_seekbar);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -231,6 +242,57 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
         });
 
+        highWaterMarkSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+                highWaterMark = progresValue;
+                highWaterMarkText.setText(Integer.toString(highWaterMark));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        lowWaterMarkSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+                lowWaterMark = progresValue;
+                lowWaterMarkText.setText(Integer.toString(lowWaterMark));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        afterMsgDelaySeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+                afterMsgDelay = progresValue;
+                afterMsgDelayText.setText(Integer.toString(afterMsgDelay));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        highWaterMarkSeekBar.setProgress(highWaterMark);
+        lowWaterMarkSeekBar.setProgress(lowWaterMark);
+        afterMsgDelaySeekBar.setProgress(afterMsgDelay);
     }
 
     // app shutdown - destroy allocated objects
@@ -302,6 +364,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             highWaterMark = Integer.parseInt(highWaterMarkText.getText().toString());
             lowWaterMark = Integer.parseInt(lowWaterMarkText.getText().toString());
             afterMsgDelay = Integer.parseInt(afterMsgDelayText.getText().toString());
+
             userName = (String) userNameText.getText().toString();
 
             editor.putInt("highWaterMark", highWaterMark);
@@ -332,6 +395,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         highWaterMarkText.setText(Integer.toString(highWaterMark));
         lowWaterMarkText.setText(Integer.toString(lowWaterMark));
         afterMsgDelayText.setText(Integer.toString(afterMsgDelay));
+
         userNameText.setText(userName);
 
         if (saying_joined_messages) {
