@@ -66,6 +66,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // settings variables for room announcements
     private Boolean saying_joined_messages = false;
     private Boolean saying_left_messages = true;
+    private Boolean saying_emojis = false;
 
     // settings variables for flow control (high/low water mark in the code 'Q Full' and 'Q Open' on the display)
 
@@ -102,6 +103,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private Switch       joinMessagesSwitch = null;
     private Switch       textDisplaySwitch = null;
     private Switch       leftMessagesSwitch = null;
+    private Switch       emojiSwitch = null;
 
     private WebQueryTask userQueryTask = null;
     private WebQueryTask infoQueryTask = null;
@@ -179,6 +181,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         textDisplaySwitch = (Switch) findViewById(R.id.toggle_text_display);
         joinMessagesSwitch = (Switch) findViewById(R.id.join_messages);
         leftMessagesSwitch = (Switch) findViewById(R.id.left_messages);
+        emojiSwitch = (Switch) findViewById(R.id.emoji_messages);
 
         mainView.setVisibility(View.VISIBLE);
         settingsView.setVisibility(View.GONE);
@@ -197,15 +200,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             @Override
             public void onCheckedChanged(CompoundButton buttonView,
                                          boolean isChecked) {
-                String messageToSay;
                 saying_joined_messages = isChecked;
                 if (isChecked) {
-                    messageToSay = "Join messages have been enabled";
+                    queueMessageToSay("Join messages have been enabled");
                 }
                 else {
-                    messageToSay = "Join messages have been disabled";
+                    queueMessageToSay("Join messages have been disabled");
                 }
-                queueMessageToSay(messageToSay);
             }
         });
 
@@ -214,19 +215,17 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             @Override
             public void onCheckedChanged(CompoundButton buttonView,
                                          boolean isChecked) {
-                String messageToSay;
                 saying_left_messages = isChecked;
                 if (isChecked) {
-                    messageToSay = "Left messages have been enabled";
+                    queueMessageToSay("Left messages have been enabled");
                 }
                 else {
-                    messageToSay = "Left messages have been disabled";
+                    queueMessageToSay("Left messages have been disabled");
                 }
-                queueMessageToSay(messageToSay);
             }
         });
 
-        //attach a listener to check for changes in left messages state
+        //attach a listener to check for changes in text display state
         textDisplaySwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView,
@@ -237,7 +236,22 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     setMessageView("Text display enabled");
                 }
                 else {
-                    setMessageView("Text display display");
+                    setMessageView("Text display disabled");
+                }
+            }
+        });
+
+        //attach a listener to check for changes in text display state
+        emojiSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                saying_emojis = isChecked;
+                if (isChecked) {
+                    setMessageView("Emojis are enabled");
+                }
+                else {
+                    setMessageView("Emojis are disabled");
                 }
             }
         });
@@ -340,17 +354,19 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private void displayHelp() {
         settingsView.setVisibility(View.GONE);
         mainView.setVisibility(View.VISIBLE);
-        setMessageView("ScopeSpeaker v0.34<br><br>"
-                + "Enter your Periscope username and ScopeSpeaker will find your current "
-                + "live stream when you are broadcasting, and run it in the background to read your viewers' chat messages aloud.<br><br>"
-                + "You can also run ScopeSpeaker in split-screen mode as a companion app to Periscope, so you can change the preferences or settings (see below) "
+        setMessageView("ScopeSpeaker v0.35<br><br>"
+                + "Enter a Periscope user name and ScopeSpeaker will say the chat messages of that user's current live stream.<br><br>"
+                + "As a broadcaster, enter your user name and ScopeSpeaker will say your viewers' chat messages.<br><br>"
+                + "As a viewer, enter the broadcaster's username and ScopeSpeaker will say yours and other viewers' messages.<br><br>"
+                + "ScopeSpeaker runs as a companion app to Periscope, either in the background or in split-screen mode , so you can change the preferences or settings (see below) "
                 + "while broadcasting.<br><br>"
                 + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
                 + "<u>Preferences:</u><br><br>"
                 + "Slide the switches to enable or disable the announcements of users joining or leaving the chats.<br><br>"
-                + "The 'Text Display' button will disable chat message text display (some jurisdictions fine for text on screen)<br><br>"
+                + "The 'Text Display' switch will disable chat message text display (to avoid possible fines by some jurisdictions for text on the screen while driving).<br><br>"
+                + "The 'Emojis' switch will disable the pronouncement of emojis in messages.<br><br>"
                 + "<u>Settings:</u><br><br>"
-                + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full') "
+                + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
     }
@@ -392,6 +408,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userName = settings.getString("streamLocator", "Broadcaster Name");
         saying_joined_messages = settings.getBoolean("sayJoinedMessages", false);
         saying_left_messages = settings.getBoolean("sayLeftMessages", true);
+        saying_emojis = settings.getBoolean("sayEmojis", true);
         currentVoice = settings.getString("currentVoice", "unknown");
 
         highWaterMarkText.setText(Integer.toString(highWaterMark));
@@ -412,6 +429,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
         else {
             leftMessagesSwitch.setChecked(false);
+        }
+
+        if (saying_emojis) {
+            emojiSwitch.setChecked(true);
+        }
+        else {
+            emojiSwitch.setChecked(false);
         }
         textDisplaySwitch.setChecked(true);
         displaying_messages = true;
@@ -736,6 +760,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     chat_message = who_said_it + " said: " + what_they_said;
                 }
             }
+            if ( (chat_message != null) && (!saying_emojis) ) {
+                chat_message = removeEmoji(chat_message);
+            }
             return chat_message;
         }
         catch (JSONException e) {
@@ -746,6 +773,26 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             appendToChatLog("Payload parse error: " + chatString);
             return null;
         }
+    }
+
+    private String removeEmoji(String incoming) {
+        // we will store all the non emoji characters in this array list
+        ArrayList<Character> nonEmoji = new ArrayList<>();
+
+        // this is where we will store the reasembled name
+        String outgoing = "";
+
+        for (int i = 0; i < incoming.length(); i++) {
+            // currently emojis don't have a devoted unicode script so they return UNKNOWN
+            if (incoming.charAt(i) < 255) {
+                nonEmoji.add(incoming.charAt(i));//its not an emoji so we add it
+            }
+        }
+        // we then cycle through rebuilding the string
+        for (int i = 0; i < nonEmoji.size(); i++) {
+            outgoing += nonEmoji.get(i);
+        }
+        return outgoing;
     }
 
     // extract a broadcast ID for the first broadcast of a user's list of broadcasts returned by the user query
