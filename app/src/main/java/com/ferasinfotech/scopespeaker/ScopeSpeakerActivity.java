@@ -354,7 +354,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private void displayHelp() {
         settingsView.setVisibility(View.GONE);
         mainView.setVisibility(View.VISIBLE);
-        setMessageView("ScopeSpeaker v0.35<br><br>"
+        setMessageView("ScopeSpeaker v0.36<br><br>"
                 + "Enter a Periscope user name and ScopeSpeaker will say the chat messages of that user's current live stream.<br><br>"
                 + "As a broadcaster, enter your user name and ScopeSpeaker will say your viewers' chat messages.<br><br>"
                 + "As a viewer, enter the broadcaster's username and ScopeSpeaker will say yours and other viewers' messages.<br><br>"
