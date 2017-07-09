@@ -166,6 +166,10 @@ public class TTSManager {
         return matchedNames;
     }
 
+    public String getDefaultLanguage() {
+        return defaultLanguage;
+    }
+
     public String getCurrentVoice() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             return mTts.getVoice().getName();
