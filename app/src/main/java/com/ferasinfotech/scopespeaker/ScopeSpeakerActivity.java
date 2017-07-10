@@ -70,6 +70,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private Boolean saying_joined_messages = false;
     private Boolean saying_left_messages = true;
     private Boolean saying_emojis = false;
+    private Boolean saying_translations = true;
+    private Boolean saying_display_names = true;
 
     // settings variables for flow control (high/low water mark in the code 'Q Full' and 'Q Open' on the display)
 
@@ -107,6 +109,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private Switch       textDisplaySwitch = null;
     private Switch       leftMessagesSwitch = null;
     private Switch       emojiSwitch = null;
+    private Switch       translationsSwitch = null;
+    private Switch       displayNameSwitch = null;
 
     private WebQueryTask userQueryTask = null;
     private WebQueryTask infoQueryTask = null;
@@ -193,6 +197,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         joinMessagesSwitch = (Switch) findViewById(R.id.join_messages);
         leftMessagesSwitch = (Switch) findViewById(R.id.left_messages);
         emojiSwitch = (Switch) findViewById(R.id.emoji_messages);
+        translationsSwitch = (Switch) findViewById(R.id.translations);
+        displayNameSwitch = (Switch) findViewById(R.id.display_names);
+
 
         mainView.setVisibility(View.VISIBLE);
         settingsView.setVisibility(View.GONE);
@@ -266,6 +273,37 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 }
             }
         });
+
+        //attach a listener to check for changes in text display state
+        translationsSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                saying_translations = isChecked;
+                if (isChecked) {
+                    setMessageView("Translations are enabled");
+                }
+                else {
+                    setMessageView("Translations are disabled");
+                }
+            }
+        });
+
+        //attach a listener to check for changes in text display state
+        displayNameSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                saying_display_names = isChecked;
+                if (isChecked) {
+                    setMessageView("Display Names are enabled");
+                }
+                else {
+                    setMessageView("User Names are disabled");
+                }
+            }
+        });
+
 
         highWaterMarkSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -377,6 +415,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "The 'Text Display' switch will disable chat message text display (to avoid possible fines by some jurisdictions for text on the screen while driving).<br><br>"
                 + "The 'Emojis' switch will disable the pronouncement of emojis in messages.<br><br>"
                 + "<u>Settings:</u><br><br>"
+                + "The 'Translations' switch will enable or disable the translation of chat messages into the default language of the ScopeSpeaker user's device.<br><br>"
+                + "The 'DisplayNames' switch will enable the saying viewers' more human sounding DisplayName instead of their unique UserName.<br><br>"
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
@@ -402,6 +442,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             editor.putString("streamLocator", userName);
             editor.putBoolean("sayJoinedMessages", saying_joined_messages);
             editor.putBoolean("sayLeftMessages", saying_left_messages);
+            editor.putBoolean("sayEmojis", saying_emojis);
+            editor.putBoolean("sayTranslations", saying_translations);
+            editor.putBoolean("sayDisplayNames", saying_display_names);
             editor.putString("currentVoice", currentVoice);
             editor.apply();
         }
@@ -421,6 +464,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         saying_left_messages = settings.getBoolean("sayLeftMessages", true);
         saying_emojis = settings.getBoolean("sayEmojis", true);
         currentVoice = settings.getString("currentVoice", "unknown");
+        saying_translations = settings.getBoolean("sayTranslations", true);
+        saying_display_names = settings.getBoolean("sayDisplayNames", true);
 
         highWaterMarkText.setText(Integer.toString(highWaterMark));
         lowWaterMarkText.setText(Integer.toString(lowWaterMark));
@@ -428,26 +473,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
         userNameText.setText(userName);
 
-        if (saying_joined_messages) {
-            joinMessagesSwitch.setChecked(true);
-        }
-        else {
-            joinMessagesSwitch.setChecked(false);
-        }
-
-        if (saying_left_messages) {
-            leftMessagesSwitch.setChecked(true);
-        }
-        else {
-            leftMessagesSwitch.setChecked(false);
-        }
-
-        if (saying_emojis) {
-            emojiSwitch.setChecked(true);
-        }
-        else {
-            emojiSwitch.setChecked(false);
-        }
+        joinMessagesSwitch.setChecked(saying_joined_messages);
+        leftMessagesSwitch.setChecked(saying_left_messages);
+        emojiSwitch.setChecked(saying_emojis);
+        translationsSwitch.setChecked(saying_translations);
+        displayNameSwitch.setChecked(saying_display_names);
         textDisplaySwitch.setChecked(true);
         displaying_messages = true;
     }
@@ -743,7 +773,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     what_they_said = outerBody.getString("body");
                     String senderString = payload.getString("sender");
                     JSONObject sender = new JSONObject(senderString);
-                    who_said_it = sender.getString("username");
+                    if (saying_display_names) {
+                        who_said_it = sender.getString("display_name");
+                    }
+                    else {
+                        who_said_it = sender.getString("username");
+                    }
                     String languageString = sender.getString("lang");
                     JSONArray languageArray = new JSONArray(languageString);
                     language_tag = languageArray.getString(0);
@@ -924,7 +959,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             Toast.makeText(getApplicationContext(), speak_string, Toast.LENGTH_SHORT).show();
         }
         queuedMessageBeingSaid = speak_string;
-        if (speak_string.indexOf(":") == 2) {
+        if ( (saying_translations) && (speak_string.indexOf(":") == 2) ) {
             // message needs to be translated, request translation
             String msg_fields[] = speak_string.split(":");
             String who_said_it = msg_fields[1].split(" ")[0];

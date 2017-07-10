@@ -155,6 +155,51 @@
                 android:layout_height="wrap_content">
                 <LinearLayout
                     android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="20dp"
+                        android:layout_marginTop="4dp" >
+
+                        <TextView
+                            android:text="Translations"
+                            android:layout_height="wrap_content"
+                            android:layout_width="wrap_content"
+                            android:lineSpacingExtra="4dp"
+                            android:layout_marginLeft="50dp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:text="DisplayNames"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:lineSpacingExtra="4dp"
+                            android:layout_marginLeft="250dp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="10dp">
+
+                        <Switch
+                            android:id="@+id/translations"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="50dp" />
+
+                        <Switch
+                            android:id="@+id/display_names"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="250dp" />
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+                <LinearLayout
+                    android:orientation="vertical"
                     android:layout_marginBottom="20dp"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
