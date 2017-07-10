@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 
 /**
  * Created by DoguD on 01/07/2017.
@@ -60,7 +61,8 @@ public class TranslatorBackgroundTask extends AsyncTask<String, Void, String> {
             //Set up the translation call URL
             String yandexKey = "trnsl.1.1.20170707T040715Z.91d8bbf749039bd6.313fa4324e6371e9ae58a30e2a4f93b47dca1ca2";
             String yandexUrl = "https://translate.yandex.net/api/v1.5/tr.json/translate?key=" + yandexKey
-                    + "&text=" + textToBeTranslated + "&lang=" + languagePair;
+             + "&text=" + URLEncoder.encode(textToBeTranslated, "UTF-8") + "&lang=" + languagePair;
+            // + "&text=" + "hola" + "&lang=" + "es-en";
             URL yandexTranslateURL = new URL(yandexUrl);
 
             //Set Http Conncection, Input Stream, and Buffered Reader
@@ -88,7 +90,6 @@ public class TranslatorBackgroundTask extends AsyncTask<String, Void, String> {
             resultString = resultString.substring(resultString.indexOf("\"")+1);
             resultString = resultString.substring(0,resultString.indexOf("\""));
 
-            Log.d("Translation Result:", resultString);
             return jsonStringBuilder.toString().trim();
 
         } catch (MalformedURLException e) {

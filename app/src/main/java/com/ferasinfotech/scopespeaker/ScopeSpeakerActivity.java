@@ -114,8 +114,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     private TranslatorBackgroundTask translatorBackgroundTask = null;
 
-    // the word "said" in the device native language
+    // the words "said" and "translated" in the device native language
+    //  TODO: when the default language is not english, hit translation service to get these words
+    //  TODO: in the default language
     private String saidWord = "said";
+    private String translatedWord = "translated";
 
     // timer variables
     private Handler     handler = null;
@@ -694,11 +697,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 if (what_was_said.equals("joined") && !saying_joined_messages) {
                     return;
                 }
-                String to_be_said = null;
+                String to_be_said = "";
                 if (!defaultLanguage.equals(language_tag)) {
                     to_be_said = language_tag + ":";
                 }
-                to_be_said += who_said_it + "said:" + ":" + what_was_said;
+                to_be_said += who_said_it + " said" + ": " + what_was_said;
                 appendToChatLog(to_be_said);
                 queueMessageToSay(to_be_said);
             }
@@ -726,7 +729,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // extract a chat message from a JSON packet sent by the Periscope chat server
     private String extractChatMessage(String chatString) {
         String what_they_said = "";
-        String who_said_it = null;
+        String who_said_it = "";
         String language_tag = null;
         try {
             JSONObject chatMessage = new JSONObject(chatString);
@@ -785,6 +788,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             Toast.makeText(getApplicationContext(), "Chat message payload parse error", Toast.LENGTH_SHORT).show();
             queuePriorityMessageToSay("Chat message payload parse error");
             appendToChatLog("Payload parse error: " + chatString);
+            return null;
+        }
+        if ( (who_said_it.length() == 0) || (what_they_said.length() == 0) ) {
             return null;
         }
         return language_tag + ":" + who_said_it + ":" + what_they_said;
@@ -921,10 +927,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         if (speak_string.indexOf(":") == 2) {
             // message needs to be translated, request translation
             String msg_fields[] = speak_string.split(":");
-            appendToChatLog("Before translation: " + msg_fields[2]);
+            String who_said_it = msg_fields[1].split(" ")[0];
+            String translation_command = msg_fields[0] + "-" + defaultLanguage;
+            String what_was_said = msg_fields[2];
+            appendToChatLog("Before " + translation_command + " translation: " + msg_fields[2]);
+            Log.i(TAG, "*****Before " + translation_command + " translation: " + msg_fields[2]);
             TranslatorBackgroundTask translatorBackgroundTask= new TranslatorBackgroundTask(this);
             translatorBackgroundTask.init(this);
-            translatorBackgroundTask.execute(msg_fields[1], msg_fields[2], msg_fields[0] + "-" + defaultLanguage);
+            translatorBackgroundTask.execute(who_said_it, what_was_said, translation_command);
         }
         else {
             sayIt(speak_string);
@@ -949,8 +959,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // say a string after translation
     public void sayTranslated(String who_said_it, String what_was_said) {
-        sayIt(who_said_it + saidWord + ":" + what_was_said);
         translatorBackgroundTask = null;
+        Log.i(TAG, "*****After translation: " + what_was_said);
+        appendToChatLog("After translation: " + what_was_said);
+        if (what_was_said.equals("joined")) {
+            return;
+        }
+        sayIt(who_said_it + " " + translatedWord + ": " + what_was_said);
     }
 
     // invoked by text to speech object when something is done being said
