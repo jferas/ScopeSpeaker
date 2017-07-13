@@ -24,6 +24,8 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Set;
 
+import static android.speech.tts.TextToSpeech.SUCCESS;
+
 /**
  * Created by Nilanchala
  * http://www.stacktips.com
@@ -54,7 +56,7 @@ public class TTSManager {
     private TextToSpeech.OnInitListener onInitListener = new TextToSpeech.OnInitListener() {
         @Override
         public void onInit(int status) {
-            if (status == TextToSpeech.SUCCESS) {
+            if (status == SUCCESS) {
                 Locale theLocale = null;
                 int result = mTts.setLanguage(Locale.US);
                 isLoaded = true;
@@ -78,18 +80,18 @@ public class TTSManager {
                 mTts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                     @Override
                     public void onDone(String utteranceId) {
-					/*
-					 * When myTTS is done speaking the current "audio file",
-					 * call playAudio on the next audio file.
-					 */
                         if (utteranceId.equals("utteranceId")) {
                             mTts.stop();
-                            scopeSpeakerActivity.speechComplete();
+                            scopeSpeakerActivity.speechComplete(null);
                         }
                     }
 
                     @Override
                     public void onError(String utteranceId) {
+                        if (utteranceId.equals("utteranceId")) {
+                            mTts.stop();
+                            scopeSpeakerActivity.speechComplete("Speech output error");
+                        }
                     }
 
                     @Override
@@ -127,14 +129,19 @@ public class TTSManager {
     }
 
     public void initQueue(String text) {
+        int queue_result;
+
         if (isLoaded) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                mTts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "utteranceId");
+                queue_result = mTts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "utteranceId");
             }
             else {
                 HashMap<String, String> map = new HashMap<>();
                 map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
-                mTts.speak(text, TextToSpeech.QUEUE_FLUSH, map);
+                queue_result = mTts.speak(text, TextToSpeech.QUEUE_FLUSH, map);
+            }
+            if (queue_result != SUCCESS) {
+                scopeSpeakerActivity.speechComplete("Speech output error");
             }
         }
         else {

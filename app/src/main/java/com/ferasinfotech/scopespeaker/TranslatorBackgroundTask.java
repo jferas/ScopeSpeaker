@@ -56,13 +56,20 @@ public class TranslatorBackgroundTask extends AsyncTask<String, Void, String> {
         this.languagePair = params[2];
 
         String jsonString;
+        String translation_command;
+
+        if (languagePair.indexOf("?") == 0) {
+            translation_command = languagePair.split("-")[1];
+        }
+        else {
+            translation_command = languagePair;
+        }
 
         try {
             //Set up the translation call URL
             String yandexKey = "trnsl.1.1.20170707T040715Z.91d8bbf749039bd6.313fa4324e6371e9ae58a30e2a4f93b47dca1ca2";
             String yandexUrl = "https://translate.yandex.net/api/v1.5/tr.json/translate?key=" + yandexKey
-             + "&text=" + URLEncoder.encode(textToBeTranslated, "UTF-8") + "&lang=" + languagePair;
-            // + "&text=" + "hola" + "&lang=" + "es-en";
+             + "&text=" + URLEncoder.encode(textToBeTranslated, "UTF-8") + "&lang=" + translation_command;
             URL yandexTranslateURL = new URL(yandexUrl);
 
             //Set Http Conncection, Input Stream, and Buffered Reader
@@ -107,7 +114,13 @@ public class TranslatorBackgroundTask extends AsyncTask<String, Void, String> {
 
     @Override
     protected void onPostExecute(String result) {
-        scopeSpeakerActivity.sayTranslated(who_said_it, resultString);
+        String translation_to_say = resultString;
+
+        if (translation_to_say == null) {
+            translation_to_say = textToBeTranslated;
+        }
+        scopeSpeakerActivity.sayTranslated(who_said_it, translation_to_say,
+                "<br><br>" + this.languagePair + " Translation by Yandex");
     }
 
     @Override

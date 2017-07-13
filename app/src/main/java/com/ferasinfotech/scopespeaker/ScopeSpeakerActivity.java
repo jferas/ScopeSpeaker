@@ -299,7 +299,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     setMessageView("Display Names are enabled");
                 }
                 else {
-                    setMessageView("User Names are disabled");
+                    setMessageView("User Names are enabled");
                 }
             }
         });
@@ -403,7 +403,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private void displayHelp() {
         settingsView.setVisibility(View.GONE);
         mainView.setVisibility(View.VISIBLE);
-        setMessageView("ScopeSpeaker v0.37<br><br>"
+        setMessageView("ScopeSpeaker v0.40<br><br>"
                 + "Enter a Periscope user name and ScopeSpeaker will say the chat messages of that user's current live stream.<br><br>"
                 + "As a broadcaster, enter your user name and ScopeSpeaker will say your viewers' chat messages.<br><br>"
                 + "As a viewer, enter the broadcaster's username and ScopeSpeaker will say yours and other viewers' messages.<br><br>"
@@ -727,11 +727,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 if (what_was_said.equals("joined") && !saying_joined_messages) {
                     return;
                 }
-                String to_be_said = "";
-                if (!defaultLanguage.equals(language_tag)) {
-                    to_be_said = language_tag + ":";
-                }
-                to_be_said += who_said_it + " said" + ": " + what_was_said;
+                String to_be_said = language_tag + ":" + who_said_it + ":" + what_was_said;
                 appendToChatLog(to_be_said);
                 queueMessageToSay(to_be_said);
             }
@@ -773,15 +769,23 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     what_they_said = outerBody.getString("body");
                     String senderString = payload.getString("sender");
                     JSONObject sender = new JSONObject(senderString);
-                    if (saying_display_names) {
+                    String languageString = sender.getString("lang");
+                    JSONArray languageArray = new JSONArray(languageString);
+                    String chat_message_language = languageArray.getString(0);
+                    if (saying_display_names && chat_message_language.equals("en")) {
                         who_said_it = sender.getString("display_name");
                     }
                     else {
                         who_said_it = sender.getString("username");
                     }
-                    String languageString = sender.getString("lang");
-                    JSONArray languageArray = new JSONArray(languageString);
-                    language_tag = languageArray.getString(0);
+                    language_tag = "";
+                    if (languageArray.length() > 1) {
+                        language_tag = "?M";
+                    }
+                    if (what_they_said.length() > 20) {
+                        language_tag = "?L";
+                    }
+                    language_tag += chat_message_language;
                     if (what_they_said.equals("joined")) {
                         //Log.i(TAG, "got a textual join message:" + chatString);
                         return null;
@@ -948,6 +952,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
 
         speaking = true;
+        Log.i(TAG, "Speaking flag has been set to true");
+        appendToChatLog("Speaking flag has been set to true");
         speak_string = messages.get(0);
         messages.remove(0);
         if ( (droppingMessages) && (messages.size()) == lowWaterMark) {
@@ -958,26 +964,38 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             appendToChatLog(speak_string);
             Toast.makeText(getApplicationContext(), speak_string, Toast.LENGTH_SHORT).show();
         }
+        Boolean message_processed = false;
         queuedMessageBeingSaid = speak_string;
-        if ( (saying_translations) && (speak_string.indexOf(":") == 2) ) {
+        int colon_location = speak_string.indexOf(":");
+        if ( (colon_location > 0) && (colon_location < 5) ) {
             // message needs to be translated, request translation
             String msg_fields[] = speak_string.split(":");
-            String who_said_it = msg_fields[1].split(" ")[0];
-            String translation_command = msg_fields[0] + "-" + defaultLanguage;
+            String language_tag = msg_fields[0];
+            String who_said_it = msg_fields[1];
             String what_was_said = msg_fields[2];
-            appendToChatLog("Before " + translation_command + " translation: " + msg_fields[2]);
-            Log.i(TAG, "*****Before " + translation_command + " translation: " + msg_fields[2]);
-            TranslatorBackgroundTask translatorBackgroundTask= new TranslatorBackgroundTask(this);
-            translatorBackgroundTask.init(this);
-            translatorBackgroundTask.execute(who_said_it, what_was_said, translation_command);
+            if (saying_translations && (!language_tag.equals(defaultLanguage))) {
+                String translation_command = language_tag + "-" + defaultLanguage;
+                appendToChatLog("Before " + translation_command + " translation: " + msg_fields[2]);
+                Log.i(TAG, "*****Before " + translation_command + " translation: " + msg_fields[2]);
+                TranslatorBackgroundTask translatorBackgroundTask = new TranslatorBackgroundTask(this);
+                translatorBackgroundTask.init(this);
+                translatorBackgroundTask.execute(who_said_it, what_was_said, translation_command);
+            }
+            else {
+                sayIt(who_said_it + " " + saidWord + ": " + what_was_said, "");
+                Log.i(TAG, "***** Said(" + language_tag + "):" + what_was_said);
+                appendToChatLog("***** Said(" + language_tag + "):" + what_was_said);
+            }
+            message_processed = true;
         }
-        else {
-            sayIt(speak_string);
+
+        if (!message_processed) {
+            sayIt(speak_string, "");
         }
     }
 
     // say a string
-    public void sayIt(String message_to_say) {
+    public void sayIt(String message_to_say, String additional_screen_info) {
         String speak_string;
 
         if ( (message_to_say != null) && (!saying_emojis) ) {
@@ -986,28 +1004,41 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         else {
             speak_string = message_to_say;
         }
-        setMessageView(speak_string);
+        setMessageView(speak_string + additional_screen_info);
         if (ttsManager != null) {
             ttsManager.initQueue(speak_string);
         }
     }
 
     // say a string after translation
-    public void sayTranslated(String who_said_it, String what_was_said) {
+    public void sayTranslated(String who_said_it, String what_was_said, String translation_info) {
         translatorBackgroundTask = null;
         Log.i(TAG, "*****After translation: " + what_was_said);
         appendToChatLog("After translation: " + what_was_said);
-        if (what_was_said.equals("joined")) {
+        if (what_was_said.equals("joined") || what_was_said.equals("Joined")
+                || what_was_said.equals("Participation") || what_was_said.equals("has joined"))  {
+            speaking = false;
+            queuedMessageBeingSaid = null;
+            sayNext();
             return;
         }
-        sayIt(who_said_it + " " + translatedWord + ": " + what_was_said);
+        String announce_word = translatedWord;
+
+        if (translation_info.indexOf("?L") >= 0) {
+            announce_word = saidWord;
+        }
+        sayIt(who_said_it + " " + announce_word + ": " + what_was_said, translation_info);
     }
 
     // invoked by text to speech object when something is done being said
+    // a status string is passed in if something went wrong in outputting the speech, a null passed otherwise
     // if a delay is desired after each message the timer is kicked off here to schedule the next message,
     //   otherwise the next message is kicked off.
     //  Note: speech object doesn't run on UI thread, but the chat logic does, so we have to use 'runOnUiThread' invocation
-    public void speechComplete () {
+    public void speechComplete (String speech_status) {
+        if (speech_status != null) {
+            setMessageView(speech_status);
+        }
         if (afterMsgDelay != 0) {
             SystemClock.sleep(afterMsgDelay * 1000);
         }
@@ -1015,6 +1046,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             @Override
             public void run() {
                 speaking = false;
+                Log.i(TAG, "Speaking flag has been set to false");
+                appendToChatLog("Speaking flag has been set to false");
                 queuedMessageBeingSaid = null;
                 sayNext();
             }
