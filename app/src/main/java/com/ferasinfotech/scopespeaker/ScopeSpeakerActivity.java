@@ -79,16 +79,19 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private int     lowWaterMark = 5;
     private int     afterMsgDelay = 5;
     private Boolean droppingMessages = false;
+    private int     detectLength = 20;
 
     // SeekBar widgets for input parameters
     private SeekBar highWaterMarkSeekBar = null;
     private SeekBar lowWaterMarkSeekBar = null;
     private SeekBar afterMsgDelaySeekBar = null;
+    private SeekBar detectLengthSeekBar = null;
 
     // Text widgets to hold seekbar values
     private TextView highWaterMarkText = null;
     private TextView lowWaterMarkText = null;
     private TextView afterMsgDelayText = null;
+    private TextView detectLengthText = null;
 
     // state variable indicating whether speech is in progress or not
     private Boolean      speaking = false;
@@ -184,10 +187,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         highWaterMarkText = (TextView) findViewById(R.id.high_water_mark);
         lowWaterMarkText = (TextView) findViewById(R.id.low_water_mark);
         afterMsgDelayText = (TextView) findViewById(R.id.after_msg_pause);
+        detectLengthText = (TextView) findViewById(R.id.detect_length);
 
         highWaterMarkSeekBar = (SeekBar) findViewById(R.id.high_water_mark_seekbar);
         lowWaterMarkSeekBar = (SeekBar) findViewById(R.id.low_water_mark_seekbar);
         afterMsgDelaySeekBar = (SeekBar) findViewById(R.id.after_msg_pause_seekbar);
+        detectLengthSeekBar = (SeekBar) findViewById(R.id.detect_length_seekbar);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -353,9 +358,26 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
         });
 
+        detectLengthSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+                detectLength = progresValue;
+                detectLengthText.setText(Integer.toString(detectLength));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
         highWaterMarkSeekBar.setProgress(highWaterMark);
         lowWaterMarkSeekBar.setProgress(lowWaterMark);
         afterMsgDelaySeekBar.setProgress(afterMsgDelay);
+        detectLengthSeekBar.setProgress(detectLength);
     }
 
     // app shutdown - destroy allocated objects
@@ -419,7 +441,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "The 'DisplayNames' switch will enable the saying viewers' more human sounding DisplayName instead of their unique UserName.<br><br>"
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
-                + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted");
+                + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted<br><br>"
+                + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope");
     }
 
     // update permanent storage with settings
@@ -433,12 +456,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             highWaterMark = Integer.parseInt(highWaterMarkText.getText().toString());
             lowWaterMark = Integer.parseInt(lowWaterMarkText.getText().toString());
             afterMsgDelay = Integer.parseInt(afterMsgDelayText.getText().toString());
+            detectLength = Integer.parseInt(detectLengthText.getText().toString());
 
             userName = (String) userNameText.getText().toString();
 
             editor.putInt("highWaterMark", highWaterMark);
             editor.putInt("lowWaterMark", lowWaterMark);
             editor.putInt("afterMsgDelay", afterMsgDelay);
+            editor.putInt("detectLength", detectLength);
             editor.putString("streamLocator", userName);
             editor.putBoolean("sayJoinedMessages", saying_joined_messages);
             editor.putBoolean("sayLeftMessages", saying_left_messages);
@@ -459,6 +484,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         highWaterMark = settings.getInt("highWaterMark", 10);
         lowWaterMark = settings.getInt("lowWaterMark", 5);
         afterMsgDelay = settings.getInt("afterMsgDelay", 0);
+        detectLength = settings.getInt("detectLength", 20);
         userName = settings.getString("streamLocator", "Broadcaster Name");
         saying_joined_messages = settings.getBoolean("sayJoinedMessages", false);
         saying_left_messages = settings.getBoolean("sayLeftMessages", true);
@@ -470,6 +496,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         highWaterMarkText.setText(Integer.toString(highWaterMark));
         lowWaterMarkText.setText(Integer.toString(lowWaterMark));
         afterMsgDelayText.setText(Integer.toString(afterMsgDelay));
+        detectLengthText.setText(Integer.toString(detectLength));
 
         userNameText.setText(userName);
 
@@ -782,7 +809,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     if (languageArray.length() > 1) {
                         language_tag = "?M";
                     }
-                    if (what_they_said.length() > 20) {
+                    if (what_they_said.length() > detectLength) {
                         language_tag = "?L";
                     }
                     language_tag += chat_message_language;

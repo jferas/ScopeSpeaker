@@ -219,7 +219,7 @@
                             android:id="@+id/high_water_mark"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginLeft="200dp"
+                            android:layout_marginLeft="250dp"
                             android:textColor="#0000FF"
                             android:textSize="20sp"
                             android:textStyle="bold" />
@@ -262,7 +262,7 @@
                             android:id="@+id/low_water_mark"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginLeft="200dp"
+                            android:layout_marginLeft="250dp"
                             android:textColor="#0000FF"
                             android:textSize="20sp"
                             android:textStyle="bold" />
@@ -306,7 +306,7 @@
                             android:id="@+id/after_msg_pause"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginLeft="200dp"
+                            android:layout_marginLeft="250dp"
                             android:textColor="#0000FF"
                             android:textSize="20sp"
                             android:textStyle="bold" />
@@ -326,6 +326,49 @@
                         android:layout_width="300dp"
                         android:layout_height="wrap_content"
                         android:max="30"/>
+
+                </LinearLayout>
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_marginBottom="20dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" >
+                        <TextView
+                            android:text="Detect Length:"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="75dp"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/detect_length"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="250dp"
+                            android:textColor="#0000FF"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
+
+                    <TextView
+                        android:text="The number of characters that will trigger auto detection of language for translations"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <SeekBar
+                        android:id="@+id/detect_length_seekbar"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="300dp"
+                        android:layout_height="wrap_content"
+                        android:max="100"/>
 
                 </LinearLayout>
             </LinearLayout>
