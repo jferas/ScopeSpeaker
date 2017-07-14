@@ -52,7 +52,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private final static String PERISCOPE_CHAT_ACCESS_URL = "https://api.periscope.tv/api/v2/accessChatPublic?chat_token=";
 
     private final static String VIDEO_TAG = "https://www.pscp.tv/w/";
-    private final static String PSCP_TAG = "pscp;://broadcast/";
+    private final static String PSCP_TAG = "pscp://broadcast/";
     private final static String JSON_TAG_BROADCAST = "broadcast";
     private final static String JSON_TAG_VIDEO_STATE = "state";
     private final static String JSON_TAG_URL_CHAT_TOKEN = "chat_token";
@@ -177,7 +177,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private Integer     secondsToWait = 30;
 
     // the shared Periscope URL
-    private String sharedUrl;
+    private String sharedUrl = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -395,7 +395,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             if ("text/plain".equals(type)) {
                 sharedUrl = intent.getStringExtra(Intent.EXTRA_TEXT);
                 if ((sharedUrl != null) && (sharedUrl.contains("https://www.pscp.tv"))) {
-                    sharedUrlQuery();
+                    schedulePeriscopeSetupQuery(2);
                 }
             } else {
                 queueMessageToSay("ScopeSpeaker received something that was not a Periscope broadcast URL");
@@ -662,10 +662,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userQueryTask.execute(sharedUrl);
     }
 
-
-    // schedule a user query to be run a given number of seconds from now
-    private void schedulePeriscopeUserQuery(int seconds) {
-        queueMessageToSay("Will check for live streams in " + seconds + " seconds");
+    // schedule a setup query (user or shared URL) query to be run a given number of seconds from now
+    private void schedulePeriscopeSetupQuery(int seconds) {
+        if (sharedUrl == null) {
+            queueMessageToSay("Will check for live streams in " + seconds + " seconds");
+        }
         if (handler != null) {
             handler.removeCallbacks(the_runnable);
             handler = null;
@@ -674,9 +675,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         the_runnable = new Runnable() {
             @Override
             public void run() {
-                //Query Periscope for user again after 'secondsToWait' seconds (converted to ms)
+                //Query Periscope for user or shared URL again after 'secondsToWait' seconds (converted to ms)
                 handler = null;
-                userQuery();
+                if (sharedUrl != null) {
+                    sharedUrlQuery();
+                }
+                else {
+                    userQuery();
+                }
             }
         };
         handler.postDelayed(the_runnable, seconds * 1000);
@@ -689,7 +695,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 userQueryTask.cancel(true);
                 userQueryTask = null;
             }
-            broadcastID = extractBroadcastID(response);
+            if (sharedUrl != null) {
+                broadcastID = extractBroadcastIdFromSharedUrlResponse(response);
+            }
+            else {
+                broadcastID = extractBroadcastIdFromUserResponse(response);
+            }
             if (broadcastID != null) {
                 appState = State.AWAITING_CHAT_ACCESS_TOKEN;
                 infoQueryTask = new WebQueryTask();
@@ -697,8 +708,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 infoQueryTask.execute(PERISCOPE_BROACAST_INFO_URL + broadcastID);
             }
             else {
-                queueMessageToSay(userName + " has no broadcasts");
-                schedulePeriscopeUserQuery(secondsToWait);
+                if (sharedUrl != null) {
+                    queueMessageToSay("ScopeSpeaker did not find the shared broadcast");
+                }
+                else
+                {
+                    queueMessageToSay(userName + " has no broadcasts");
+                }
+                schedulePeriscopeSetupQuery(secondsToWait);
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
@@ -719,12 +736,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 }
                 else {
                     queueMessageToSay(userName + " is not live streaming at the moment");
-                    schedulePeriscopeUserQuery(secondsToWait);
+                    schedulePeriscopeSetupQuery(secondsToWait);
                 }
             }
             catch (JSONException e) {
                 queueMessageToSay(userName + " is not live streaming at the moment");
-                schedulePeriscopeUserQuery(secondsToWait);
+                schedulePeriscopeSetupQuery(secondsToWait);
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
@@ -800,7 +817,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                schedulePeriscopeUserQuery(secondsToWait);
+                schedulePeriscopeSetupQuery(secondsToWait);
             }
         });
     };
@@ -916,11 +933,27 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     }
 
     // extract a broadcast ID for the first broadcast of a user's list of broadcasts returned by the user query
-    private String extractBroadcastID(String periscopeResponse) {
+    private String extractBroadcastIdFromUserResponse(String periscopeResponse) {
         int startOfVideoTag = periscopeResponse.indexOf(VIDEO_TAG);
         if (startOfVideoTag > 0) {
             int startOfId = startOfVideoTag + VIDEO_TAG.length();
             int endOfId = periscopeResponse.indexOf('&', startOfVideoTag);
+            String idString = periscopeResponse.substring(startOfId, endOfId);
+            return(idString);
+        }
+        else
+        {
+            return(null);
+        }
+    }
+
+    // extract a broadcast ID from the shared URL response
+    //
+    private String extractBroadcastIdFromSharedUrlResponse(String periscopeResponse) {
+        int startOfPscpTag = periscopeResponse.indexOf(PSCP_TAG);
+        if (startOfPscpTag > 0) {
+            int startOfId = startOfPscpTag + PSCP_TAG.length();
+            int endOfId = periscopeResponse.indexOf('"', startOfPscpTag);
             String idString = periscopeResponse.substring(startOfId, endOfId);
             return(idString);
         }
@@ -1197,7 +1230,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         this.mConnection = null;
 
         queueMessageToSay("Chat server connection closed, attempting to reconnect");
-        schedulePeriscopeUserQuery(2);
+        schedulePeriscopeSetupQuery(2);
     }
 
     @Override
