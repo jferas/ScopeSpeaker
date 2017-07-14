@@ -52,6 +52,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private final static String PERISCOPE_CHAT_ACCESS_URL = "https://api.periscope.tv/api/v2/accessChatPublic?chat_token=";
 
     private final static String VIDEO_TAG = "https://www.pscp.tv/w/";
+    private final static String PSCP_TAG = "pscp;://broadcast/";
     private final static String JSON_TAG_BROADCAST = "broadcast";
     private final static String JSON_TAG_VIDEO_STATE = "state";
     private final static String JSON_TAG_URL_CHAT_TOKEN = "chat_token";
@@ -172,8 +173,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     String       currentVoice = null;
     String       defaultLanguage = null;
 
-    // settings variables
+    // timer variable for delay between user web query retries
     private Integer     secondsToWait = 30;
+
+    // the shared Periscope URL
+    private String sharedUrl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -390,18 +394,17 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         if (Intent.ACTION_SEND.equals(action) && type != null) {
             if ("text/plain".equals(type)) {
                 sharedUrl = intent.getStringExtra(Intent.EXTRA_TEXT);
-                if ( (sharedUrl != null) && (sharedUrl.contains("https://www.pscp.tv")) ) {
-                    doing_shared_url_so_no_ui = true;
+                if ((sharedUrl != null) && (sharedUrl.contains("https://www.pscp.tv"))) {
                     sharedUrlQuery();
                 }
-            }
-            else {
+            } else {
                 queueMessageToSay("ScopeSpeaker received something that was not a Periscope broadcast URL");
             }
+        }
     }
 
     // app shutdown - destroy allocated objects
-    @Override
+        @Override
     public void onDestroy() {
         super.onDestroy();
         stopChatProcessing(false);
@@ -649,6 +652,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userQueryTask.init(this);
         userQueryTask.execute(PERISCOPE_URL + userName);
     }
+
+    // send a query about the user named in the userNameText text object to the periscope web server
+    private void sharedUrlQuery() {
+        queueMessageToSay("ScopeSpeaker is acquiring the shared Periscope stream");
+        appState = State.AWAITING_BROADCAST_ID;
+        userQueryTask = new WebQueryTask();
+        userQueryTask.init(this);
+        userQueryTask.execute(sharedUrl);
+    }
+
 
     // schedule a user query to be run a given number of seconds from now
     private void schedulePeriscopeUserQuery(int seconds) {
