@@ -3,6 +3,7 @@ package com.ferasinfotech.scopespeaker;
 import android.content.ClipData;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
@@ -176,9 +177,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        // Get intent, action and MIME type
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+
         super.onCreate(savedInstanceState);
 
         createTextToSpeechManager();
+
         setContentView(R.layout.activity_scope_speaker);
         mainView = (View) findViewById(R.id.main_display);
         settingsView = (View) findViewById(R.id.settings_display);
@@ -378,6 +386,18 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         lowWaterMarkSeekBar.setProgress(lowWaterMark);
         afterMsgDelaySeekBar.setProgress(afterMsgDelay);
         detectLengthSeekBar.setProgress(detectLength);
+
+        if (Intent.ACTION_SEND.equals(action) && type != null) {
+            if ("text/plain".equals(type)) {
+                sharedUrl = intent.getStringExtra(Intent.EXTRA_TEXT);
+                if ( (sharedUrl != null) && (sharedUrl.contains("https://www.pscp.tv")) ) {
+                    doing_shared_url_so_no_ui = true;
+                    sharedUrlQuery();
+                }
+            }
+            else {
+                queueMessageToSay("ScopeSpeaker received something that was not a Periscope broadcast URL");
+            }
     }
 
     // app shutdown - destroy allocated objects
