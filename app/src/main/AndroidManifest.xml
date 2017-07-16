@@ -16,7 +16,7 @@
             android:name=".ScopeSpeakerActivity"
             android:label="@string/app_name"
             android:taskAffinity=""
-            android:launchMode = "singleInstance"
+            android:launchMode = "singleTask"
             android:theme="@style/AppTheme.NoActionBar"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize">
             <intent-filter>

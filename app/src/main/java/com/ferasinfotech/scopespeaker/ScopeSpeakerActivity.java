@@ -221,9 +221,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         mainView.setVisibility(View.VISIBLE);
         settingsView.setVisibility(View.GONE);
 
-        displayHelp();
-
-
         // keep keyboard from popping up at ap startup
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
@@ -391,24 +388,48 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         afterMsgDelaySeekBar.setProgress(afterMsgDelay);
         detectLengthSeekBar.setProgress(detectLength);
 
+        determineLaunchMethod(intent);
+
+    } // onCreate
+
+    // received a new intent, process the re-launch
+    @Override
+    public void onNewIntent(Intent newIntent) {
+        stopChatProcessing(false);
+        determineLaunchMethod(newIntent);
+    }
+
+    // app shutdown - destroy allocated objects
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        stopChatProcessing(false);
+        destroyTextToSpeechManager();
+    }
+
+    private void determineLaunchMethod(Intent theIntent) {
+        String action = theIntent.getAction();
+        String type = theIntent.getType();
+        sharedUrl = null;
+        userNameText.setVisibility(View.VISIBLE);
         if (Intent.ACTION_SEND.equals(action) && type != null) {
             if ("text/plain".equals(type)) {
-                sharedUrl = intent.getStringExtra(Intent.EXTRA_TEXT);
+                sharedUrl = theIntent.getStringExtra(Intent.EXTRA_TEXT);
                 if ((sharedUrl != null) && (sharedUrl.contains("https://www.pscp.tv"))) {
+                    // launched via send action intent containing URL of periscope stream .. get broadcast ID from it
+                    userNameText.setVisibility(View.GONE);
+                    chatActionButton.setText("Stop Saying Messages");
+                    setMessageView("Launched on request of Periscope via shared broadcast URL");
                     schedulePeriscopeSetupQuery(2);
                 }
             } else {
                 queueMessageToSay("ScopeSpeaker received something that was not a Periscope broadcast URL");
             }
         }
-    }
-
-    // app shutdown - destroy allocated objects
-        @Override
-    public void onDestroy() {
-        super.onDestroy();
-        stopChatProcessing(false);
-        destroyTextToSpeechManager();
+        else {
+            // normal launch put up help text
+            displayHelp();
+        }
     }
 
     @Override
@@ -448,12 +469,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private void displayHelp() {
         settingsView.setVisibility(View.GONE);
         mainView.setVisibility(View.VISIBLE);
-        setMessageView("ScopeSpeaker v0.41<br><br>"
-                + "Enter a Periscope user name and ScopeSpeaker will say the chat messages of that user's current live stream.<br><br>"
-                + "As a broadcaster, enter your user name and ScopeSpeaker will say your viewers' chat messages.<br><br>"
-                + "As a viewer, enter the broadcaster's username and ScopeSpeaker will say yours and other viewers' messages.<br><br>"
-                + "ScopeSpeaker runs as a companion app to Periscope, either in the background or in split-screen mode , so you can change the preferences or settings (see below) "
-                + "while broadcasting.<br><br>"
+        setMessageView(
+                "As a Periscope viewer, use the 'Share Broadcast' and 'Share To' options to get ScopeSpeaker to say (and translate) the chat messages of that stream aloud.<br><br>"
+                + "As a Periscope broadcaster, enter your Periscope user name before broadcasting and ScopeSpeaker will say (and translate) your viewers' chat messages while broadcasting.<br><br>"
+                + "After ScopeSpeaker begins listening to chat messages, leave it running in the background, and return to Periscope.<br><br>"
+                + "ScopeSpeaker can also be run in split-screen mode as a companion app to Periscope.<br><br>"
+                + "Split screen mode allows ScopeSpeaker settings and preferences to be changed while broadcasting. ScopeSpeaker can also be run on a separate device for that purpose.<br><br>"
                 + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
                 + "<u>Preferences:</u><br><br>"
                 + "Slide the switches to enable or disable the announcements of users joining or leaving the chats.<br><br>"
@@ -465,7 +486,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted<br><br>"
-                + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope");
+                + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
+                + "ScopeSpeaker v0.42");
     }
 
     // update permanent storage with settings
@@ -575,10 +597,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     public void chatAction(View v) {
         if (appState != State.AWAITING_USER_REQUEST) {
             chatActionButton.setText("Say Periscope Messages of");
+            userNameText.setVisibility(View.VISIBLE);
             stopChatProcessing(true);
         }
         else {
             chatActionButton.setText("Stop Saying Messages");
+            sharedUrl = null;
             startChatProcessing();
         }
     }
@@ -714,8 +738,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 else
                 {
                     queueMessageToSay(userName + " has no broadcasts");
+                    schedulePeriscopeSetupQuery(secondsToWait);
                 }
-                schedulePeriscopeSetupQuery(secondsToWait);
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
@@ -741,7 +765,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
             catch (JSONException e) {
                 queueMessageToSay(userName + " is not live streaming at the moment");
-                schedulePeriscopeSetupQuery(secondsToWait);
+                if (sharedUrl == null) {
+                    schedulePeriscopeSetupQuery(secondsToWait);
+                }
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
@@ -805,7 +831,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     return;
                 }
                 String to_be_said = language_tag + ":" + who_said_it + ":" + what_was_said;
-                appendToChatLog(to_be_said);
                 queueMessageToSay(to_be_said);
             }
         }
@@ -1045,8 +1070,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
 
         speaking = true;
-        Log.i(TAG, "Speaking flag has been set to true");
-        appendToChatLog("Speaking flag has been set to true");
         speak_string = messages.get(0);
         messages.remove(0);
         if ( (droppingMessages) && (messages.size()) == lowWaterMark) {
@@ -1068,21 +1091,23 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             String what_was_said = msg_fields[2];
             if (saying_translations && (!language_tag.equals(defaultLanguage))) {
                 String translation_command = language_tag + "-" + defaultLanguage;
-                appendToChatLog("Before " + translation_command + " translation: " + msg_fields[2]);
-                Log.i(TAG, "*****Before " + translation_command + " translation: " + msg_fields[2]);
+                appendToChatLog(who_said_it + " said before translation(" + translation_command + "): " + what_was_said);
+                Log.i(TAG, who_said_it + " said before translation(" + translation_command + "): " + what_was_said);
                 TranslatorBackgroundTask translatorBackgroundTask = new TranslatorBackgroundTask(this);
                 translatorBackgroundTask.init(this);
                 translatorBackgroundTask.execute(who_said_it, what_was_said, translation_command);
             }
             else {
                 sayIt(who_said_it + " " + saidWord + ": " + what_was_said, "");
-                Log.i(TAG, "***** Said(" + language_tag + "):" + what_was_said);
-                appendToChatLog("***** Said(" + language_tag + "):" + what_was_said);
+                Log.i(TAG, who_said_it + " said(" + language_tag + "): " + what_was_said);
+                appendToChatLog(who_said_it + " said(" + language_tag + "): " + what_was_said);
             }
             message_processed = true;
         }
 
         if (!message_processed) {
+            Log.i(TAG, speak_string);
+            appendToChatLog(speak_string);
             sayIt(speak_string, "");
         }
     }
@@ -1106,7 +1131,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // say a string after translation
     public void sayTranslated(String who_said_it, String what_was_said, String translation_info) {
         translatorBackgroundTask = null;
-        Log.i(TAG, "*****After translation: " + what_was_said);
+        Log.i(TAG, "After translation: " + what_was_said);
         appendToChatLog("After translation: " + what_was_said);
         if (what_was_said.equals("joined") || what_was_said.equals("Joined")
                 || what_was_said.equals("Participation") || what_was_said.equals("has joined"))  {
@@ -1118,7 +1143,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         String announce_word = translatedWord;
 
         if (translation_info.indexOf("?L") >= 0) {
-            announce_word = saidWord;
+            String source_language = translation_info.split("-")[0].split("L")[1];
+            if (source_language.equals(defaultLanguage)) {
+                announce_word = saidWord;
+            }
         }
         sayIt(who_said_it + " " + announce_word + ": " + what_was_said, translation_info);
     }
@@ -1139,8 +1167,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             @Override
             public void run() {
                 speaking = false;
-                Log.i(TAG, "Speaking flag has been set to false");
-                appendToChatLog("Speaking flag has been set to false");
                 queuedMessageBeingSaid = null;
                 sayNext();
             }
