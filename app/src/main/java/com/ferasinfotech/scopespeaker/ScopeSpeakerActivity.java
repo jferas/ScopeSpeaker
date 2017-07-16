@@ -55,6 +55,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private final static String PSCP_TAG = "pscp://broadcast/";
     private final static String JSON_TAG_BROADCAST = "broadcast";
     private final static String JSON_TAG_VIDEO_STATE = "state";
+    private final static String JSON_TAG_BROADCAST_SOURCE = "broadcast_source";
+    private final static String JSON_TAG_USERNAME = "username";
     private final static String JSON_TAG_URL_CHAT_TOKEN = "chat_token";
     private final static String JSON_TAG_CHAT_ACCESS_TOKEN = "access_token";
     private final static String JSON_TAG_ENDPOINT_URL = "endpoint";
@@ -150,6 +152,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // chat access token fetched from the URL that gives individual broadcast info
     private String chatURLAccessToken = null;
+
+    // broadcast source software (iOS, Android, etc) fetched from URL that gives individual broadcast info
+    private String broadcastSource = null;
+
+    // broadcast user name fetched from URL that gives individual broadcast info
+    private String broadcastUsername = null;
 
     // chat access token fetched from JSON response and fed to websocket on handshake
     private String chatAccessToken = null;
@@ -487,7 +495,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted<br><br>"
                 + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
-                + "ScopeSpeaker v0.42");
+                + "ScopeSpeaker v0.43");
     }
 
     // update permanent storage with settings
@@ -751,6 +759,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 JSONObject infoJsonResponse = new JSONObject(response);
                 JSONObject bcastJsonObject = infoJsonResponse.getJSONObject(JSON_TAG_BROADCAST);
                 String video_state = bcastJsonObject.getString(JSON_TAG_VIDEO_STATE);
+                broadcastSource = bcastJsonObject.getString(JSON_TAG_BROADCAST_SOURCE);
+                broadcastUsername = bcastJsonObject.getString(JSON_TAG_USERNAME);
                 if (video_state.equals("RUNNING")) {
                     chatURLAccessToken = infoJsonResponse.getString(JSON_TAG_URL_CHAT_TOKEN);
                     appState = State.AWAITING_CHAT_ENDPOINT;
@@ -800,7 +810,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
         else if (appState == State.AWAITING_WEBSOCKET_CONNECTION) {
             if (response.equals("connected")) {
-                queueMessageToSay("Listening for chat messages");
+                if (broadcastSource.indexOf("android") >= 0) {
+                    queueMessageToSay("Listening for the chat messages of " + broadcastUsername);
+                }
+                else {
+                    queueMessageToSay("Listening to chat messages of " + broadcastUsername);
+                }
                 appState = State.AWAITING_CHAT_MESSAGES;
             }
             else {
