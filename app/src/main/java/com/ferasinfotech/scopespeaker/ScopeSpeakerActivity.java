@@ -479,14 +479,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         mainView.setVisibility(View.VISIBLE);
         setMessageView(
                 "As a Periscope viewer, use the 'Share Broadcast' and 'Share To' options to get ScopeSpeaker to say (and translate) the chat messages of that stream aloud.<br><br>"
-                + "As a Periscope broadcaster, enter your Periscope user name before broadcasting and ScopeSpeaker will say (and translate) your viewers' chat messages while broadcasting.<br><br>"
+                + "As a Periscope broadcaster, enter your Periscope user name before broadcasting, and tap the 'Say..' button to start ScopeSpeaker saying (and translating) your viewers' chat messages while broadcasting.<br><br>"
                 + "After ScopeSpeaker begins listening to chat messages, leave it running in the background, and return to Periscope.<br><br>"
                 + "ScopeSpeaker can also be run in split-screen mode as a companion app to Periscope.<br><br>"
                 + "Split screen mode allows ScopeSpeaker settings and preferences to be changed while broadcasting. ScopeSpeaker can also be run on a separate device for that purpose.<br><br>"
                 + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
                 + "<u>Preferences:</u><br><br>"
                 + "Slide the switches to enable or disable the announcements of users joining or leaving the chats.<br><br>"
-                + "The 'Text Display' switch will disable chat message text display (to avoid possible fines by some jurisdictions for text on the screen while driving).<br><br>"
+                + "The 'Text Display' switch will disable chat message text display (to avoid distractions).<br><br>"
                 + "The 'Emojis' switch will disable the pronouncement of emojis in messages.<br><br>"
                 + "<u>Settings:</u><br><br>"
                 + "The 'Translations' switch will enable or disable the translation of chat messages into the default language of the ScopeSpeaker user's device.<br><br>"
@@ -495,7 +495,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted<br><br>"
                 + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
-                + "ScopeSpeaker v0.43");
+                + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
+                + "ScopeSpeaker v0.43<br><br>"
+                + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee of is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
     // update permanent storage with settings

@@ -120,7 +120,7 @@ public class TranslatorBackgroundTask extends AsyncTask<String, Void, String> {
             translation_to_say = textToBeTranslated;
         }
         scopeSpeakerActivity.sayTranslated(who_said_it, translation_to_say,
-                "<br><br>" + this.languagePair + " Translation by Yandex");
+                "<br><br>(" + this.languagePair + ") Translation powered by <a href=\"http://translate.yandex.com\">Yandex.Translate</a>");
     }
 
     @Override
