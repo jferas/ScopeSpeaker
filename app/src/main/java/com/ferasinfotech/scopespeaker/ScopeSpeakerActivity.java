@@ -496,8 +496,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted<br><br>"
                 + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.43<br><br>"
-                + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee of is made related to the consistency of the app's performance with the User’s goals and expectations.");
+                + "ScopeSpeaker v0.45<br><br>"
+                + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
     // update permanent storage with settings
@@ -632,9 +632,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             disconnect();
         }
         if (makeAnnouncement) {
-            messages.clear();
             queueMessageToSay("Chat messages stopped");
         }
+        messages.clear();
         appState = State.AWAITING_USER_REQUEST;
     }
 
@@ -901,7 +901,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     if (languageArray.length() > 1) {
                         language_tag = "?M";
                     }
-                    if (what_they_said.length() > detectLength) {
+                    if ( (language_tag.length() == 0) && (what_they_said.length() > detectLength) ) {
                         language_tag = "?L";
                     }
                     language_tag += chat_message_language;
@@ -1100,7 +1100,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         Boolean message_processed = false;
         queuedMessageBeingSaid = speak_string;
         int colon_location = speak_string.indexOf(":");
-        if ( (colon_location > 0) && (colon_location < 5) ) {
+        int question_mark_location = speak_string.indexOf("?");
+        if ( (question_mark_location == 0) || ((colon_location > 0) && (colon_location < 5)) ) {
             // message needs to be translated, request translation
             String msg_fields[] = speak_string.split(":");
             String language_tag = msg_fields[0];
