@@ -72,7 +72,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // settings variables for room announcements
     private Boolean saying_joined_messages = false;
-    private Boolean saying_left_messages = true;
+    private Boolean saying_left_messages = false;
     private Boolean saying_emojis = false;
     private Boolean saying_translations = true;
     private Boolean saying_display_names = true;
@@ -493,7 +493,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "The 'DisplayNames' switch will enable the saying viewers' more human sounding DisplayName instead of their unique UserName.<br><br>"
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
-                + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted<br><br>"
+                + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted. The speed at which messages are said can be controlled via Android Text-to-Speech settings.<br><br>"
                 + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
                 + "ScopeSpeaker v0.45<br><br>"
@@ -542,7 +542,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         detectLength = settings.getInt("detectLength", 20);
         userName = settings.getString("streamLocator", "Broadcaster Name");
         saying_joined_messages = settings.getBoolean("sayJoinedMessages", false);
-        saying_left_messages = settings.getBoolean("sayLeftMessages", true);
+        saying_left_messages = settings.getBoolean("sayLeftMessages", false);
         saying_emojis = settings.getBoolean("sayEmojis", true);
         currentVoice = settings.getString("currentVoice", "unknown");
         saying_translations = settings.getBoolean("sayTranslations", true);
