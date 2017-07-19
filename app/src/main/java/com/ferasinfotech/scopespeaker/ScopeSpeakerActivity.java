@@ -496,7 +496,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted. The speed at which messages are said can be controlled via Android Text-to-Speech settings.<br><br>"
                 + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.45<br><br>"
+                + "ScopeSpeaker v0.46<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
@@ -771,15 +771,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     chatQueryTask.execute(PERISCOPE_CHAT_ACCESS_URL + chatURLAccessToken);
                 }
                 else {
-                    queueMessageToSay(userName + " is not live streaming at the moment");
-                    schedulePeriscopeSetupQuery(secondsToWait);
+                    chatAccessError();
                 }
             }
             catch (JSONException e) {
-                queueMessageToSay(userName + " is not live streaming at the moment");
-                if (sharedUrl == null) {
-                    schedulePeriscopeSetupQuery(secondsToWait);
-                }
+                chatAccessError();
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
@@ -850,6 +846,17 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 String to_be_said = language_tag + ":" + who_said_it + ":" + what_was_said;
                 queueMessageToSay(to_be_said);
             }
+        }
+    }
+
+    private void chatAccessError() {
+        if (sharedUrl == null) {
+            queueMessageToSay(userName + " is not live streaming at the moment");
+            schedulePeriscopeSetupQuery(secondsToWait);
+        }
+        else {
+            queueMessageToSay("The requested stream is not live and may be a replay");
+            userNameText.setVisibility(View.VISIBLE);
         }
     }
 
