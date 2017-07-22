@@ -77,8 +77,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private Boolean saying_translations = true;
     private Boolean saying_display_names = true;
 
-    // settings variables for flow control (high/low water mark in the code 'Q Full' and 'Q Open' on the display)
+    // settings variables for volume, flow control (high/low water mark in the code 'Q Full' and 'Q Open' on the display)
+    //  as well as pause after message delay, and flag the messages are being dropped from the queue
+    //  and the length of a string that triggers auto language detection.
 
+    private int     speechVolume = 100;
     private int     highWaterMark = 10;
     private int     lowWaterMark = 5;
     private int     afterMsgDelay = 5;
@@ -86,12 +89,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private int     detectLength = 20;
 
     // SeekBar widgets for input parameters
+    private SeekBar speechVolumeSeekBar = null;
     private SeekBar highWaterMarkSeekBar = null;
     private SeekBar lowWaterMarkSeekBar = null;
     private SeekBar afterMsgDelaySeekBar = null;
     private SeekBar detectLengthSeekBar = null;
 
     // Text widgets to hold seekbar values
+    private TextView speechVolumeText = null;
     private TextView highWaterMarkText = null;
     private TextView lowWaterMarkText = null;
     private TextView afterMsgDelayText = null;
@@ -204,11 +209,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         settingsView = (View) findViewById(R.id.settings_display);
         userNameText = (TextView) findViewById(R.id.username);
 
+        speechVolumeText = (TextView) findViewById(R.id.speech_volume);
         highWaterMarkText = (TextView) findViewById(R.id.high_water_mark);
         lowWaterMarkText = (TextView) findViewById(R.id.low_water_mark);
         afterMsgDelayText = (TextView) findViewById(R.id.after_msg_pause);
         detectLengthText = (TextView) findViewById(R.id.detect_length);
 
+        speechVolumeSeekBar = (SeekBar) findViewById(R.id.speech_volume_seekbar);
         highWaterMarkSeekBar = (SeekBar) findViewById(R.id.high_water_mark_seekbar);
         lowWaterMarkSeekBar = (SeekBar) findViewById(R.id.low_water_mark_seekbar);
         afterMsgDelaySeekBar = (SeekBar) findViewById(R.id.after_msg_pause_seekbar);
@@ -327,6 +334,22 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         });
 
 
+        speechVolumeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+                speechVolume = progresValue;
+                speechVolumeText.setText(Integer.toString(speechVolume));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
         highWaterMarkSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
@@ -391,6 +414,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
         });
 
+        speechVolumeSeekBar.setProgress(speechVolume);
         highWaterMarkSeekBar.setProgress(highWaterMark);
         lowWaterMarkSeekBar.setProgress(lowWaterMark);
         afterMsgDelaySeekBar.setProgress(afterMsgDelay);
@@ -445,6 +469,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         if (settingsViewIsUp) {
             mainView.setVisibility(View.VISIBLE);
             settingsView.setVisibility(View.GONE);
+            ttsManager.setVolume(speechVolume);
             settingsViewIsUp = false;
         }
         else if ( (lastTimeBackWasPressed + 5000L) > System.currentTimeMillis() ) {
@@ -508,6 +533,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         SharedPreferences settings = getPreferences(0);
         SharedPreferences.Editor editor = settings.edit();
         try {
+            speechVolume = Integer.parseInt(speechVolumeText.getText().toString());
             highWaterMark = Integer.parseInt(highWaterMarkText.getText().toString());
             lowWaterMark = Integer.parseInt(lowWaterMarkText.getText().toString());
             afterMsgDelay = Integer.parseInt(afterMsgDelayText.getText().toString());
@@ -515,6 +541,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
             userName = (String) userNameText.getText().toString();
 
+            editor.putInt("speechVolume", speechVolume);
             editor.putInt("highWaterMark", highWaterMark);
             editor.putInt("lowWaterMark", lowWaterMark);
             editor.putInt("afterMsgDelay", afterMsgDelay);
@@ -536,6 +563,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // restore settings from permanent storage
     private void restoreSettings() {
         SharedPreferences settings = getPreferences(0);
+        speechVolume = settings.getInt("speechVolume", 10);
         highWaterMark = settings.getInt("highWaterMark", 10);
         lowWaterMark = settings.getInt("lowWaterMark", 5);
         afterMsgDelay = settings.getInt("afterMsgDelay", 0);
@@ -548,6 +576,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         saying_translations = settings.getBoolean("sayTranslations", true);
         saying_display_names = settings.getBoolean("sayDisplayNames", true);
 
+        speechVolumeText.setText(Integer.toString(speechVolume));
         highWaterMarkText.setText(Integer.toString(highWaterMark));
         lowWaterMarkText.setText(Integer.toString(lowWaterMark));
         afterMsgDelayText.setText(Integer.toString(afterMsgDelay));

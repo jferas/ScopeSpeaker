@@ -41,13 +41,13 @@ public class TTSManager {
     private Set<Voice> matchedVoices = null;
     private String defaultLanguage = null;
 
+    private String volumeFractionString = "1.0";
+
     public void init(Context context, ScopeSpeakerActivity ssa) {
         try {
             mTts = new TextToSpeech(context, onInitListener);
             scopeSpeakerActivity = ssa;
             the_context = context;
-            params = new Bundle();
-            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -133,11 +133,15 @@ public class TTSManager {
 
         if (isLoaded) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                params = new Bundle();
+                params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "");
+                params.putString(TextToSpeech.Engine.KEY_PARAM_VOLUME, volumeFractionString);
                 queue_result = mTts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "utteranceId");
             }
             else {
                 HashMap<String, String> map = new HashMap<>();
                 map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
+                map.put(TextToSpeech.Engine.KEY_PARAM_VOLUME, volumeFractionString);
                 queue_result = mTts.speak(text, TextToSpeech.QUEUE_FLUSH, map);
             }
             if (queue_result != SUCCESS) {
@@ -198,5 +202,10 @@ public class TTSManager {
                 }
             }
         }
+    }
+
+    public void setVolume(int volume) {
+        float volumeFraction = (float) volume / 100.0f;
+        volumeFractionString = String.valueOf(volumeFraction);
     }
 }

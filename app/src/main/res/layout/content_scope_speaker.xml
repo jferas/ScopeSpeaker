@@ -208,6 +208,49 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp" >
                         <TextView
+                            android:text="Speech Volume:"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="75dp"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/speech_volume"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginLeft="250dp"
+                            android:textColor="#0000FF"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
+
+                    <TextView
+                        android:text="The volume of the spoken text relative to other audio output (such as music)"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <SeekBar
+                        android:id="@+id/speech_volume_seekbar"
+                        android:layout_marginLeft="30dp"
+                        android:layout_width="300dp"
+                        android:layout_height="wrap_content"
+                        android:max="100"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_marginBottom="20dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" >
+                        <TextView
                             android:text="Queue Full:"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
