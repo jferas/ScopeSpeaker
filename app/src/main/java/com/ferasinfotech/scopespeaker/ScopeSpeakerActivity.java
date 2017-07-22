@@ -563,7 +563,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // restore settings from permanent storage
     private void restoreSettings() {
         SharedPreferences settings = getPreferences(0);
-        speechVolume = settings.getInt("speechVolume", 10);
+        speechVolume = settings.getInt("speechVolume", 100);
         highWaterMark = settings.getInt("highWaterMark", 10);
         lowWaterMark = settings.getInt("lowWaterMark", 5);
         afterMsgDelay = settings.getInt("afterMsgDelay", 0);
@@ -591,6 +591,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         displayNameSwitch.setChecked(saying_display_names);
         textDisplaySwitch.setChecked(true);
         displaying_messages = true;
+        ttsManager.setVolume(speechVolume);
     }
 
 

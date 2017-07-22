@@ -42,6 +42,7 @@ public class TTSManager {
     private String defaultLanguage = null;
 
     private String volumeFractionString = "1.0";
+    private float volumeFraction = 1.0f;
 
     public void init(Context context, ScopeSpeakerActivity ssa) {
         try {
@@ -134,13 +135,13 @@ public class TTSManager {
         if (isLoaded) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                 params = new Bundle();
-                params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "");
-                params.putString(TextToSpeech.Engine.KEY_PARAM_VOLUME, volumeFractionString);
+                //params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "");
+                params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volumeFraction);
                 queue_result = mTts.speak(text, TextToSpeech.QUEUE_FLUSH, params, "utteranceId");
             }
             else {
                 HashMap<String, String> map = new HashMap<>();
-                map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
+                //map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
                 map.put(TextToSpeech.Engine.KEY_PARAM_VOLUME, volumeFractionString);
                 queue_result = mTts.speak(text, TextToSpeech.QUEUE_FLUSH, map);
             }
@@ -205,7 +206,7 @@ public class TTSManager {
     }
 
     public void setVolume(int volume) {
-        float volumeFraction = (float) volume / 100.0f;
+        volumeFraction = (float) volume / 100.0f;
         volumeFractionString = String.valueOf(volumeFraction);
     }
 }
