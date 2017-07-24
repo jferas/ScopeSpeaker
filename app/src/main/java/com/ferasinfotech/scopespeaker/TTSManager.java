@@ -141,7 +141,7 @@ public class TTSManager {
             }
             else {
                 HashMap<String, String> map = new HashMap<>();
-                //map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
+                map.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utteranceId");
                 map.put(TextToSpeech.Engine.KEY_PARAM_VOLUME, volumeFractionString);
                 queue_result = mTts.speak(text, TextToSpeech.QUEUE_FLUSH, map);
             }

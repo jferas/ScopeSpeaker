@@ -192,6 +192,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // the shared Periscope URL
     private String sharedUrl = null;
 
+    //String botWords[] = {"hallo", "hej"};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
