@@ -192,7 +192,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // the shared Periscope URL
     private String sharedUrl = null;
 
-    //String botWords[] = {"hallo", "hej"};
+    List<String> botWords = Arrays.asList("hallo", "hej");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -946,6 +946,9 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     language_tag += chat_message_language;
                     if (what_they_said.equals("joined")) {
                         //Log.i(TAG, "got a textual join message:" + chatString);
+                        return null;
+                    }
+                    if (botWords.indexOf(what_they_said) >= 0) {
                         return null;
                     }
                 } catch (JSONException e) {
