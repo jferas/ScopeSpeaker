@@ -192,7 +192,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // the shared Periscope URL
     private String sharedUrl = null;
 
-    List<String> botWords = Arrays.asList("hallo", "hej");
+    List<String> cannedBotWords = Arrays.asList("Holla", "Halloo", "Hej", "Regard", "Ciao", "Merhaba");
+
+    List<String> botWords = new ArrayList<>(cannedBotWords);
+
+    List<String> knownBots = new ArrayList<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -523,7 +527,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted. The speed at which messages are said can be controlled via Android Text-to-Speech settings.<br><br>"
                 + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.46<br><br>"
+                + "ScopeSpeaker v0.48<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
@@ -930,11 +934,13 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     String languageString = sender.getString("lang");
                     JSONArray languageArray = new JSONArray(languageString);
                     String chat_message_language = languageArray.getString(0);
+                    String display_name = sender.getString("display_name");
+                    String user_name = sender.getString("username");
                     if (saying_display_names && chat_message_language.equals("en")) {
-                        who_said_it = sender.getString("display_name");
+                        who_said_it = display_name;
                     }
                     else {
-                        who_said_it = sender.getString("username");
+                        who_said_it = user_name;
                     }
                     language_tag = "";
                     if (languageArray.length() > 1) {
@@ -948,7 +954,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                         //Log.i(TAG, "got a textual join message:" + chatString);
                         return null;
                     }
+                    if (knownBots.indexOf(user_name) >= 0) {
+                        return null;
+                    }
                     if (botWords.indexOf(what_they_said) >= 0) {
+                        Log.i(TAG, "gonna add to bot list");
+                        knownBots.add(user_name);
                         return null;
                     }
                 } catch (JSONException e) {
