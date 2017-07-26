@@ -543,10 +543,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "<u>Settings:</u><br><br>"
                 + "The 'Translations' switch will enable or disable the translation of chat messages into the default language of the ScopeSpeaker user's device.<br><br>"
                 + "The 'DisplayNames' switch will enable the saying viewers' more human sounding DisplayName instead of their unique UserName.<br><br>"
+                + "'Speech Volume' controls the audio level of the spoken messages relative to other audio outputs of the device (such as music).<br><br>"
+                + "'Name Length' controls the length (in characters) of the chat message sender's name when spoken (0 means the sender name will not be said).<br><br>"
+                + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted. The speed at which messages are said can be controlled via Android Text-to-Speech settings.<br><br>"
+                + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope.<br><br>"
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
-                + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted. The speed at which messages are said can be controlled via Android Text-to-Speech settings.<br><br>"
-                + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
                 + "ScopeSpeaker v0.49<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
@@ -1180,7 +1182,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         int colon_location = speak_string.indexOf(":");
         int question_mark_location = speak_string.indexOf("?");
         if ( (question_mark_location == 0) || ((colon_location > 0) && (colon_location < 5)) ) {
-            // message needs to be translated, request translation
+            // message may need to be translated, if device default language doesn't match language tag from chat server message
             String msg_fields[] = speak_string.split(":");
             String language_tag = msg_fields[0];
             String who_said_it = msg_fields[1];
@@ -1202,6 +1204,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             message_processed = true;
         }
 
+        // message not processed above means it isn't from someone, but is informative from app
         if (!message_processed) {
             Log.i(TAG, speak_string);
             appendToChatLog(speak_string);
@@ -1238,7 +1241,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
             else {
                 String shortend_who = who.substring(0, Math.min(who.length(), nameLength));
-                Toast.makeText(getApplicationContext(), "Shortened to:" + shortend_who, Toast.LENGTH_SHORT).show();
                 ttsManager.initQueue(shortend_who + " " + announce_word + ": " + speak_string);
             }
         }
