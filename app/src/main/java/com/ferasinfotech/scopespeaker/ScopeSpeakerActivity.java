@@ -82,6 +82,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     //  and the length of a string that triggers auto language detection.
 
     private int     speechVolume = 100;
+    private int     nameLength = 12;
     private int     highWaterMark = 10;
     private int     lowWaterMark = 5;
     private int     afterMsgDelay = 5;
@@ -90,6 +91,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // SeekBar widgets for input parameters
     private SeekBar speechVolumeSeekBar = null;
+    private SeekBar nameLengthSeekBar = null;
     private SeekBar highWaterMarkSeekBar = null;
     private SeekBar lowWaterMarkSeekBar = null;
     private SeekBar afterMsgDelaySeekBar = null;
@@ -97,6 +99,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // Text widgets to hold seekbar values
     private TextView speechVolumeText = null;
+    private TextView nameLengthText = null;
     private TextView highWaterMarkText = null;
     private TextView lowWaterMarkText = null;
     private TextView afterMsgDelayText = null;
@@ -216,12 +219,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         userNameText = (TextView) findViewById(R.id.username);
 
         speechVolumeText = (TextView) findViewById(R.id.speech_volume);
+        nameLengthText = (TextView) findViewById(R.id.name_length);
         highWaterMarkText = (TextView) findViewById(R.id.high_water_mark);
         lowWaterMarkText = (TextView) findViewById(R.id.low_water_mark);
         afterMsgDelayText = (TextView) findViewById(R.id.after_msg_pause);
         detectLengthText = (TextView) findViewById(R.id.detect_length);
 
         speechVolumeSeekBar = (SeekBar) findViewById(R.id.speech_volume_seekbar);
+        nameLengthSeekBar = (SeekBar) findViewById(R.id.name_length_seekbar);
         highWaterMarkSeekBar = (SeekBar) findViewById(R.id.high_water_mark_seekbar);
         lowWaterMarkSeekBar = (SeekBar) findViewById(R.id.low_water_mark_seekbar);
         afterMsgDelaySeekBar = (SeekBar) findViewById(R.id.after_msg_pause_seekbar);
@@ -339,12 +344,27 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
         });
 
-
         speechVolumeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
                 speechVolume = progresValue;
                 speechVolumeText.setText(Integer.toString(speechVolume));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        nameLengthSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+                nameLength = progresValue;
+                nameLengthText.setText(Integer.toString(nameLength));
             }
 
             @Override
@@ -421,6 +441,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         });
 
         speechVolumeSeekBar.setProgress(speechVolume);
+        nameLengthSeekBar.setProgress(nameLength);
         highWaterMarkSeekBar.setProgress(highWaterMark);
         lowWaterMarkSeekBar.setProgress(lowWaterMark);
         afterMsgDelaySeekBar.setProgress(afterMsgDelay);
@@ -527,7 +548,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Pause' refers to the delay after any message so the broadcaster can say something uninterrupted. The speed at which messages are said can be controlled via Android Text-to-Speech settings.<br><br>"
                 + "'Detect Length' is the number of characters that will trigger auto detection of language for translations.  Any message shorter than that will assume the sender's language as indicated by Periscope<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.48<br><br>"
+                + "ScopeSpeaker v0.49<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
@@ -540,6 +561,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         SharedPreferences.Editor editor = settings.edit();
         try {
             speechVolume = Integer.parseInt(speechVolumeText.getText().toString());
+            nameLength = Integer.parseInt(nameLengthText.getText().toString());
             highWaterMark = Integer.parseInt(highWaterMarkText.getText().toString());
             lowWaterMark = Integer.parseInt(lowWaterMarkText.getText().toString());
             afterMsgDelay = Integer.parseInt(afterMsgDelayText.getText().toString());
@@ -548,6 +570,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             userName = (String) userNameText.getText().toString();
 
             editor.putInt("speechVolume", speechVolume);
+            editor.putInt("nameLength", nameLength);
             editor.putInt("highWaterMark", highWaterMark);
             editor.putInt("lowWaterMark", lowWaterMark);
             editor.putInt("afterMsgDelay", afterMsgDelay);
@@ -570,6 +593,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private void restoreSettings() {
         SharedPreferences settings = getPreferences(0);
         speechVolume = settings.getInt("speechVolume", 100);
+        nameLength = settings.getInt("nameLength", 12);
         highWaterMark = settings.getInt("highWaterMark", 10);
         lowWaterMark = settings.getInt("lowWaterMark", 5);
         afterMsgDelay = settings.getInt("afterMsgDelay", 0);
@@ -583,6 +607,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         saying_display_names = settings.getBoolean("sayDisplayNames", true);
 
         speechVolumeText.setText(Integer.toString(speechVolume));
+        nameLengthText.setText(Integer.toString(nameLength));
         highWaterMarkText.setText(Integer.toString(highWaterMark));
         lowWaterMarkText.setText(Integer.toString(lowWaterMark));
         afterMsgDelayText.setText(Integer.toString(afterMsgDelay));
@@ -1160,6 +1185,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             String language_tag = msg_fields[0];
             String who_said_it = msg_fields[1];
             String what_was_said = msg_fields[2];
+
             if (saying_translations && (!language_tag.equals(defaultLanguage))) {
                 String translation_command = language_tag + "-" + defaultLanguage;
                 appendToChatLog(who_said_it + " said before translation(" + translation_command + "): " + what_was_said);
@@ -1169,7 +1195,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 translatorBackgroundTask.execute(who_said_it, what_was_said, translation_command);
             }
             else {
-                sayIt(who_said_it + " " + saidWord + ": " + what_was_said, "");
+                sayIt(who_said_it, saidWord, what_was_said, "");
                 Log.i(TAG, who_said_it + " said(" + language_tag + "): " + what_was_said);
                 appendToChatLog(who_said_it + " said(" + language_tag + "): " + what_was_said);
             }
@@ -1179,13 +1205,19 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         if (!message_processed) {
             Log.i(TAG, speak_string);
             appendToChatLog(speak_string);
-            sayIt(speak_string, "");
+            sayIt("", "", speak_string, "");
         }
     }
 
     // say a string
-    public void sayIt(String message_to_say, String additional_screen_info) {
+    public void sayIt(String who, String announce_word, String message_to_say, String additional_screen_info) {
         String speak_string;
+        String sayer;
+        String announce_phrase = announce_word + ": ";
+
+        if (announce_word.length() == 0) {
+            announce_phrase = "";
+        }
 
         if ( (message_to_say != null) && (!saying_emojis) ) {
             speak_string = removeEmoji(message_to_say);
@@ -1193,9 +1225,22 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         else {
             speak_string = message_to_say;
         }
-        setMessageView(speak_string + additional_screen_info);
+        if ( (who.length() != 0) && (!saying_emojis) ) {
+            sayer = removeEmoji(who);
+        }
+        else {
+            sayer = who;
+        }
+        setMessageView(sayer + " " + announce_phrase + speak_string + additional_screen_info);
         if (ttsManager != null) {
-            ttsManager.initQueue(speak_string);
+            if ( (nameLength == 0) || (sayer.length() == 0) ){
+                ttsManager.initQueue(speak_string);
+            }
+            else {
+                String shortend_who = who.substring(0, Math.min(who.length(), nameLength));
+                Toast.makeText(getApplicationContext(), "Shortened to:" + shortend_who, Toast.LENGTH_SHORT).show();
+                ttsManager.initQueue(shortend_who + " " + announce_word + ": " + speak_string);
+            }
         }
     }
 
@@ -1219,7 +1264,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 announce_word = saidWord;
             }
         }
-        sayIt(who_said_it + " " + announce_word + ": " + what_was_said, translation_info);
+        sayIt(who_said_it, announce_word, what_was_said, translation_info);
     }
 
     // invoked by text to speech object when something is done being said
