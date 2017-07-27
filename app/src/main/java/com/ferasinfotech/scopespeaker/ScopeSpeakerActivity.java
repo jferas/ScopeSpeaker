@@ -511,6 +511,16 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         }
     }
 
+    // skip the current message being said
+    public void skipMessage(View v) {
+        destroyTextToSpeechManager();
+        SystemClock.sleep(1000);
+        createTextToSpeechManager();
+        SystemClock.sleep(1000);
+        speaking = false;
+        sayNext();
+    }
+
     // create the text to speech manager
     private void createTextToSpeechManager() {
         ttsManager = new TTSManager();
@@ -551,7 +561,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.50<br><br>"
+                + "ScopeSpeaker v0.51<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 

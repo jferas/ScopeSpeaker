@@ -29,6 +29,15 @@
                 android:layout_alignParentLeft="true" />
 
             <Button
+                android:id="@+id/skip_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="skipMessage"
+                android:textAllCaps="false"
+                android:text="Skip"
+                android:layout_marginLeft="200dp" />
+
+            <Button
                 android:id="@+id/save_chat"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
