@@ -514,11 +514,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // skip the current message being said
     public void skipMessage(View v) {
         destroyTextToSpeechManager();
+        setMessageView("Skipping message...");
+        speaking = false;
         SystemClock.sleep(1000);
         createTextToSpeechManager();
-        SystemClock.sleep(1000);
-        speaking = false;
-        sayNext();
     }
 
     // create the text to speech manager
@@ -1130,7 +1129,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     }
 
     // Says the next enqueued message
-    private void sayNext() {
+    public void sayNext() {
         String speak_string = null;
 
         // exit if we are currently speaking

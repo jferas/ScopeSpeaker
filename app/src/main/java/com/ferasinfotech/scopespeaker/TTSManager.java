@@ -99,6 +99,7 @@ public class TTSManager {
                     public void onStart(String utteranceId) {
                     }
                 });
+                scopeSpeakerActivity.sayNext();
             } else {
                 Log.e("tts", "Initialization Failed!");
             }
