@@ -536,6 +536,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "ScopeSpeaker can also be run in split-screen mode as a companion app to Periscope.<br><br>"
                 + "Split screen mode allows ScopeSpeaker settings and preferences to be changed while broadcasting. ScopeSpeaker can also be run on a separate device for that purpose.<br><br>"
                 + "The 'Copy' button will cause the current chat messages to be copied to the Android clipboard.<br><br>"
+                + "The 'Change Voice' menu option allows ScopeSpeaker to use any of the voices installed in your Android device. You can install additional voices with a variety of accents via the Android 'Language and Input' / 'Text to Speech' settings.<br><br>"
                 + "<u>Preferences:</u><br><br>"
                 + "Slide the switches to enable or disable the announcements of users joining or leaving the chats.<br><br>"
                 + "The 'Text Display' switch will disable chat message text display (to avoid distractions).<br><br>"
@@ -550,7 +551,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.49<br><br>"
+                + "ScopeSpeaker v0.50<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
