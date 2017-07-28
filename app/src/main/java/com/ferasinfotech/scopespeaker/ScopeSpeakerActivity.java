@@ -516,7 +516,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         destroyTextToSpeechManager();
         setMessageView("Skipping message...");
         speaking = false;
-        SystemClock.sleep(1000);
         createTextToSpeechManager();
     }
 
@@ -679,12 +678,12 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // start or stop chat message processing in response to button press
     public void chatAction(View v) {
         if (appState != State.AWAITING_USER_REQUEST) {
-            chatActionButton.setText("Say Periscope Messages of");
+            chatActionButton.setText("Say Messages of");
             userNameText.setVisibility(View.VISIBLE);
             stopChatProcessing(true);
         }
         else {
-            chatActionButton.setText("Stop Saying Messages");
+            chatActionButton.setText("Stop Messages");
             sharedUrl = null;
             startChatProcessing();
         }
@@ -1191,7 +1190,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         queuedMessageBeingSaid = speak_string;
         int colon_location = speak_string.indexOf(":");
         int question_mark_location = speak_string.indexOf("?");
-        if ( (question_mark_location == 0) || ((colon_location > 0) && (colon_location < 5)) ) {
+        if ( (question_mark_location == 0) || ((colon_location > 0) && (colon_location < 6)) ) {
             // message may need to be translated, if device default language doesn't match language tag from chat server message
             String msg_fields[] = speak_string.split(":");
             String language_tag = msg_fields[0];
