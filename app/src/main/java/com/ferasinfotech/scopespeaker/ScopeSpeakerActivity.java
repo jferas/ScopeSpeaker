@@ -480,6 +480,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     chatActionButton.setText("Stop Saying Messages");
                     setMessageView("Launched on request of Periscope via shared broadcast URL");
                     schedulePeriscopeSetupQuery(2);
+                    moveTaskToBack(true);
                 }
             } else {
                 queueMessageToSay("ScopeSpeaker received something that was not a Periscope broadcast URL");
@@ -560,7 +561,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.51<br><br>"
+                + "ScopeSpeaker v0.52<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
@@ -1288,7 +1289,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         if (speech_status != null) {
             setMessageView(speech_status);
         }
-        if (afterMsgDelay != 0) {
+        if ( (afterMsgDelay != 0) && (sharedUrl == null) ) {
             SystemClock.sleep(afterMsgDelay * 1000);
         }
         ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {

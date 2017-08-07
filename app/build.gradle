@@ -7,8 +7,8 @@ android {
         applicationId "com.ferasinfotech.scopespeaker"
         minSdkVersion 19
         targetSdkVersion 25
-        versionCode 51
-        versionName "0.51"
+        versionCode 52
+        versionName "0.52"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
