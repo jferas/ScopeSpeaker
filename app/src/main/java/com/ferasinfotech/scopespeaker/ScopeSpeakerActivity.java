@@ -476,10 +476,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 sharedUrl = theIntent.getStringExtra(Intent.EXTRA_TEXT);
                 if ((sharedUrl != null) && (sharedUrl.contains("https://www.pscp.tv"))) {
                     // launched via send action intent containing URL of periscope stream .. get broadcast ID from it
+                    moveTaskToBack(true);
                     userNameText.setVisibility(View.GONE);
                     chatActionButton.setText("Stop Saying Messages");
                     setMessageView("Launched on request of Periscope via shared broadcast URL");
-                    schedulePeriscopeSetupQuery(2);
+                    schedulePeriscopeSetupQuery(1);
                 }
             } else {
                 queueMessageToSay("ScopeSpeaker received something that was not a Periscope broadcast URL");
@@ -786,7 +787,6 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 handler = null;
                 if (sharedUrl != null) {
                     sharedUrlQuery();
-                    moveTaskToBack(true);
                 }
                 else {
                     userQuery();
