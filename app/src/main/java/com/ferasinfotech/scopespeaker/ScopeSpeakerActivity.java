@@ -539,7 +539,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         settingsView.setVisibility(View.GONE);
         mainView.setVisibility(View.VISIBLE);
         setMessageView(
-                  "As a Periscope viewer, use its 'Share Broadcast' and 'Share To' menu options to tell ScopeSpeaker to say (and translate) the chat messages of the current stream aloud.  Put ScopeSpeaker in the background and go back to watching the Periscope stream.<br><br>"
+                  "As a viewer, use the Periscope 'Share Broadcast' and 'Share To' menu options, choosing ScopeSpeaker to tell it to run in the background to say (and translate) the chat messages of the current stream aloud.<br><br>"
                 + "As a Periscope broadcaster, enter your Periscope user name before broadcasting, and tap the 'Say..' button to start ScopeSpeaker listening for your broadcast to begin (it will retry every 30 seconds).  Then put ScopeSpeaker in the background, and start your broadcast.<br><br>"
                 + "While ScopeSpeaker is running in the background, it is continuously listening to the chat messages of the Periscope stream, saying them aloud and translating them if necessary.<br><br>"
                 + "ScopeSpeaker can also be run in split-screen mode as a companion app to Periscope.<br><br>"
