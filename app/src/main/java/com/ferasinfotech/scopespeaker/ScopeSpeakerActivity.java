@@ -54,7 +54,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private final static String PERISCOPE_CHAT_ACCESS_URL = "https://api.periscope.tv/api/v2/accessChatPublic?chat_token=";
 
     private  final static String SESSION_TAG
-            = "broadcastHistory&quot;:{&quot;token&quot;:{&quot;session_id&quot;:&quot;";
+            = "public&quot;:{&quot;broadcastHistory&quot;:{&quot;token&quot;:{&quot;session_id&quot;:&quot;";
 
     private final static String USER_TAG = ",&quot;usernames&quot;:{&quot;replace_this&quot;:&quot;";
 
@@ -822,6 +822,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 broadcastID = extractBroadcastIdFromUserResponse(response);
             }
             if (broadcastID != null) {
+                Log.i(TAG, "Doing old periscope response parsing");
                 appState = State.AWAITING_CHAT_ACCESS_TOKEN;
                 infoQueryTask = new WebQueryTask();
                 infoQueryTask.init(this);
