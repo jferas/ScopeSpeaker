@@ -49,11 +49,20 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     private final static String PERISCOPE_URL = "https://www.periscope.tv/";
     private final static String PERISCOPE_BROACAST_INFO_URL = "https://api.periscope.tv/api/v2/accessVideoPublic?broadcast_id=";
+    private final static String PERISCOPE_USER_BROADCAST_LIST_URL
+            = "https://api.periscope.tv/api/v2/getUserBroadcastsPublic?user_id=replace_with_user_id&all=true&session_id=replace_with_session_id";
     private final static String PERISCOPE_CHAT_ACCESS_URL = "https://api.periscope.tv/api/v2/accessChatPublic?chat_token=";
+
+    private  final static String SESSION_TAG
+            = "broadcastHistory&quot;:{&quot;token&quot;:{&quot;session_id&quot;:&quot;";
+
+    private final static String USER_TAG = ",&quot;usernames&quot;:{&quot;replace_this&quot;:&quot;";
 
     private final static String VIDEO_TAG = "https://www.pscp.tv/w/";
     private final static String PSCP_TAG = "pscp://broadcast/";
     private final static String JSON_TAG_BROADCAST = "broadcast";
+    private final static String JSON_TAG_BROADCASTS = "broadcasts";
+    private final static String JSON_TAG_ID = "id";
     private final static String JSON_TAG_VIDEO_STATE = "state";
     private final static String JSON_TAG_BROADCAST_SOURCE = "broadcast_source";
     private final static String JSON_TAG_USERNAME = "username";
@@ -61,7 +70,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private final static String JSON_TAG_CHAT_ACCESS_TOKEN = "access_token";
     private final static String JSON_TAG_ENDPOINT_URL = "endpoint";
 
-    private enum State {AWAITING_USER_REQUEST, AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
+    private enum State {AWAITING_USER_REQUEST, AWAITING_BROADCAST_LIST, AWAITING_BROADCAST_ID, AWAITING_CHAT_ACCESS_TOKEN, AWAITING_CHAT_ENDPOINT,
                         AWAITING_WEBSOCKET_CONNECTION, AWAITING_CHAT_MESSAGES};
 
     private State appState = State.AWAITING_USER_REQUEST;
@@ -190,7 +199,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     String       defaultLanguage = null;
 
     // timer variable for delay between user web query retries
-    private Integer     secondsToWait = 30;
+    private Integer     secondsToWait = 15;
 
     // the shared Periscope URL
     private String sharedUrl = null;
@@ -200,6 +209,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     List<String> botWords = new ArrayList<>(cannedBotWords);
 
     List<String> knownBots = new ArrayList<String>();
+
+    String web_response;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -561,7 +572,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.53<br><br>"
+                + "ScopeSpeaker v0.54<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
@@ -753,7 +764,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // send a query about the user named in the userNameText text object to the periscope web server
     private void userQuery() {
-        userName = (String) userNameText.getText().toString();
+        userName = (String) userNameText.getText().toString().trim();
         queueMessageToSay("Looking for a Periscope live stream by " + userName);
         appState = State.AWAITING_BROADCAST_ID;
         userQueryTask = new WebQueryTask();
@@ -798,6 +809,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // process the successful result of a webQueryTask request (this drives app state forward through expected states)
     public void webQueryResult(String response) {
+        web_response = response;
         if (appState == State.AWAITING_BROADCAST_ID) {
             if (userQueryTask != null) {
                 userQueryTask.cancel(true);
@@ -821,9 +833,54 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 }
                 else
                 {
+                    Log.i(TAG, "Doing new periscope response parsing");
+                    setMessageView("Doing new periscope parse");
+                    String user_session = extractUserSessionFromUserResponse(response);
+                    if (user_session != null) {
+                        List<String> the_fields = new ArrayList<String>(Arrays.asList(user_session.split(":")));
+                        String user_id = the_fields.get(0);
+                        String session_id = the_fields.get(1);
+                        String s1 = PERISCOPE_USER_BROADCAST_LIST_URL.replace("replace_with_user_id", user_id);
+                        String user_broadcast_list_url = s1.replace("replace_with_session_id", session_id);
+
+
+                        appState = State.AWAITING_BROADCAST_LIST;
+                        infoQueryTask = new WebQueryTask();
+                        infoQueryTask.init(this);
+                        infoQueryTask.execute(user_broadcast_list_url);
+                    }
+                    else {
+                        queueMessageToSay(userName + " has no broadcasts");
+                        schedulePeriscopeSetupQuery(secondsToWait);
+                    }
+                }
+            }
+        }
+        else if (appState == State.AWAITING_BROADCAST_LIST) {
+            if (infoQueryTask != null) {
+                infoQueryTask.cancel(true);
+                infoQueryTask = null;
+            }
+            try {
+                JSONObject bListJsonResponse = new JSONObject(response);
+                JSONArray  bListJsonArray = bListJsonResponse.getJSONArray(JSON_TAG_BROADCASTS);
+                if (bListJsonArray.length() > 0) {
+                    JSONObject bcastJsonObject = bListJsonArray.getJSONObject(0);
+                    broadcastID = bcastJsonObject.getString(JSON_TAG_ID);
+                    if (broadcastID != null) {
+                        appState = State.AWAITING_CHAT_ACCESS_TOKEN;
+                        infoQueryTask = new WebQueryTask();
+                        infoQueryTask.init(this);
+                        infoQueryTask.execute(PERISCOPE_BROACAST_INFO_URL + broadcastID);
+                    }
+                }
+                if (broadcastID == null) {
                     queueMessageToSay(userName + " has no broadcasts");
                     schedulePeriscopeSetupQuery(secondsToWait);
                 }
+            }
+            catch (JSONException e) {
+                chatAccessError();
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
@@ -937,12 +994,14 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     // process the error result of a webQueryTask request .. schedule a new user query
     public void webQueryError(String error) {
         queueMessageToSay("Got a bad response from periscope: " + error);
+        /* jjf
         ScopeSpeakerActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 schedulePeriscopeSetupQuery(secondsToWait);
             }
         });
+        */
     };
 
     // append a chat message to the running chat log
@@ -1074,10 +1133,34 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             String idString = periscopeResponse.substring(startOfId, endOfId);
             return(idString);
         }
-        else
-        {
+        else {
             return(null);
         }
+    }
+
+    // extract a User ID and a session ID from the response to the user query,
+    //  return in a colon separated, concatenated string
+    private String extractUserSessionFromUserResponse(String periscopeResponse) {
+        String actualUserTag = USER_TAG.replace("replace_this", userName);
+        int startOfUserTag = periscopeResponse.indexOf(actualUserTag);
+        if (startOfUserTag < 0) {
+            return(null);
+        }
+        int startOfId = startOfUserTag + actualUserTag.length();
+        int endOfId = periscopeResponse.indexOf('&', startOfId);
+        String idString = periscopeResponse.substring(startOfId, endOfId);
+        Log.i(TAG, "Parsed user id of:" + idString);
+
+        int startOfSessionTag = periscopeResponse.indexOf(SESSION_TAG);
+        if (startOfSessionTag < 0) {
+            return (null);
+        }
+        int startOfSessionId = startOfSessionTag + SESSION_TAG.length();
+        int endoFSessionId = periscopeResponse.indexOf('&', startOfSessionId);
+        String sessionIdString = periscopeResponse.substring(startOfSessionId, endoFSessionId);
+        Log.i(TAG, "Parsed session id of:" + sessionIdString);
+
+        return(idString + ":" + sessionIdString);
     }
 
     // extract a broadcast ID from the shared URL response
