@@ -199,7 +199,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     String       defaultLanguage = null;
 
     // timer variable for delay between user web query retries
-    private Integer     secondsToWait = 15;
+    private Integer     secondsToWait = 30;
 
     // the shared Periscope URL
     private String sharedUrl = null;
@@ -834,8 +834,11 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 }
                 else
                 {
+                    // this code parses the new 'react' based periscope page.. if a colon suddenly appears
+                    //  in the "Looking for.." msg on the screen, that indicates the new parse is being done
+
                     Log.i(TAG, "Doing new periscope response parsing");
-                    setMessageView("Doing new periscope parse");
+                    setMessageView("Looking for a Periscope live stream by: " + userName);
                     String user_session = extractUserSessionFromUserResponse(response);
                     if (user_session != null) {
                         List<String> the_fields = new ArrayList<String>(Arrays.asList(user_session.split(":")));
