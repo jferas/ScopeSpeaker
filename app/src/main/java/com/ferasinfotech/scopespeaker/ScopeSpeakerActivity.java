@@ -86,6 +86,8 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
     private Boolean saying_translations = true;
     private Boolean saying_display_names = true;
 
+    private int diagnostic_request_count = 0;
+
     // settings variables for volume, flow control (high/low water mark in the code 'Q Full' and 'Q Open' on the display)
     //  as well as pause after message delay, and flag the messages are being dropped from the queue
     //  and the length of a string that triggers auto language detection.
@@ -572,7 +574,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 + "'Queue Full' and 'Queue Open' values control when messages will stop being said (when the queue is deeper than 'Queue Full')."
                 + "and when they will resume being said (when the queue gets as small as 'Queue Open'<br><br>"
                 + "Translations powered by <a href=\"http://translate.yandex.com/\">Yandex.Translate</a><br><br>"
-                + "ScopeSpeaker v0.54<br><br>"
+                + "ScopeSpeaker v0.56<br><br>"
                 + "Disclaimer: ScopeSpeaker is a free app, and is provided 'as is'. No guarantee is made related to the consistency of the app's performance with the User’s goals and expectations.");
     }
 
@@ -667,6 +669,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
         //noinspection SimplifiableIfStatement
         if (id == R.id.help_menu_item) {
             displayHelp();
+            diagnostic_request_count++;
+            if (diagnostic_request_count >= 2) {
+                Toast.makeText(getApplicationContext(), "Diagnostics Enabled", Toast.LENGTH_SHORT).show();
+            }
         }
         else if (id == R.id.change_voice_menu_item) {
             popupVoiceList();
@@ -764,7 +770,7 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
 
     // send a query about the user named in the userNameText text object to the periscope web server
     private void userQuery() {
-        userName = (String) userNameText.getText().toString().trim();
+        userName = (String) userNameText.getText().toString().trim().replace("@", "");
         queueMessageToSay("Looking for a Periscope live stream by " + userName);
         appState = State.AWAITING_BROADCAST_ID;
         userQueryTask = new WebQueryTask();
@@ -823,6 +829,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
             if (broadcastID != null) {
                 Log.i(TAG, "Doing old periscope response parsing");
+                appendToChatLog("Doing old periscope response parsing");
+                if (diagnostic_request_count >= 2) {
+                    appendToChatLog(response);
+                }
                 appState = State.AWAITING_CHAT_ACCESS_TOKEN;
                 infoQueryTask = new WebQueryTask();
                 infoQueryTask.init(this);
@@ -838,6 +848,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                     //  in the "Looking for.." msg on the screen, that indicates the new parse is being done
 
                     Log.i(TAG, "Doing new periscope response parsing");
+                    appendToChatLog("Doing new periscope response parsing");
+                    if (diagnostic_request_count >= 2) {
+                        appendToChatLog(response);
+                    }
                     setMessageView("Looking for a Periscope live stream by: " + userName);
                     String user_session = extractUserSessionFromUserResponse(response);
                     if (user_session != null) {
@@ -854,6 +868,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                         infoQueryTask.execute(user_broadcast_list_url);
                     }
                     else {
+                        appendToChatLog("No session or broadcast found for user");
+                        if (diagnostic_request_count >= 2) {
+                            appendToChatLog(response);
+                        }
                         queueMessageToSay(userName + " has no broadcasts");
                         schedulePeriscopeSetupQuery(secondsToWait);
                     }
@@ -880,11 +898,18 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 }
                 if (broadcastID == null) {
                     queueMessageToSay(userName + " has no broadcasts");
+                    if (diagnostic_request_count >= 2) {
+                        appendToChatLog(response);
+                    }
                     schedulePeriscopeSetupQuery(secondsToWait);
                 }
             }
             catch (JSONException e) {
                 chatAccessError();
+                appendToChatLog("Parse error on broadcast list");
+                if (diagnostic_request_count >= 2) {
+                    appendToChatLog(response);
+                }
             }
         }
         else if (appState == State.AWAITING_CHAT_ACCESS_TOKEN) {
@@ -907,10 +932,18 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
                 }
                 else {
                     chatAccessError();
+                    appendToChatLog("No live stream found");
+                    if (diagnostic_request_count >= 2) {
+                        appendToChatLog(response);
+                    }
                 }
             }
             catch (JSONException e) {
                 chatAccessError();
+                appendToChatLog("Parse error on chat access token");
+                if (diagnostic_request_count >= 2) {
+                    appendToChatLog(response);
+                }
             }
         }
         else if (appState == State.AWAITING_CHAT_ENDPOINT) {
@@ -938,6 +971,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
             catch (JSONException e) {
                 queueMessageToSay("Error retreieving chat server endpoint URL");
+                appendToChatLog("Parse error on chat server endpoint URL");
+                if (diagnostic_request_count >= 2) {
+                    appendToChatLog(response);
+                }
                 appState = State.AWAITING_USER_REQUEST;
             }
         }
@@ -953,6 +990,10 @@ public class ScopeSpeakerActivity extends AppCompatActivity implements WebSocket
             }
             else {
                 queueMessageToSay("Error connecting to periscope chat message server");
+                appendToChatLog("Error connecting to chat server");
+                if (diagnostic_request_count >= 2) {
+                    appendToChatLog(response);
+                }
                 appState = State.AWAITING_USER_REQUEST;
             }
 
