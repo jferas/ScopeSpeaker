@@ -62,7 +62,7 @@ public class TTSManager {
                 int result = mTts.setLanguage(Locale.US);
                 isLoaded = true;
 
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.LOLLIPOP) {
                     theLocale = mTts.getDefaultVoice().getLocale();
                 } else{
                     theLocale = mTts.getDefaultLanguage();
@@ -70,7 +70,7 @@ public class TTSManager {
                 defaultLanguage = theLocale.getDisplayLanguage().substring(0,2).toLowerCase();
                 Log.e("tts", "The default language is:" + defaultLanguage);
 
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.LOLLIPOP) {
                     mVoices = mTts.getVoices();
                 }
 
@@ -114,7 +114,7 @@ public class TTSManager {
 
     public void addQueue(String text) {
         if (isLoaded) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.LOLLIPOP) {
                 mTts.speak(text, TextToSpeech.QUEUE_ADD, params, "utteranceId");
             }
             else {
@@ -134,7 +134,7 @@ public class TTSManager {
         int queue_result;
 
         if (isLoaded) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.LOLLIPOP) {
                 params = new Bundle();
                 //params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "");
                 params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volumeFraction);
@@ -159,7 +159,7 @@ public class TTSManager {
 
     public List<String> getAvailableVoicesForLanguage() {
         List<String>matchedNames = new ArrayList<String>();
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.LOLLIPOP) {
             matchedVoices = new HashSet<Voice>();
             matchedNames.add("Use All Voices");
             for (Voice theVoice : mVoices) {
@@ -184,7 +184,7 @@ public class TTSManager {
     }
 
     public String getCurrentVoice() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.LOLLIPOP) {
             return mTts.getVoice().getName();
         }
         else {
@@ -193,7 +193,7 @@ public class TTSManager {
     }
 
     public void setVoice(String new_voice) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.LOLLIPOP) {
             Boolean done = false;
             Iterator<Voice> iterator = mVoices.iterator();
             while ((iterator.hasNext()) && !done) {
